@@ -35,18 +35,18 @@ class sLinDAserver(sLinDA):
                     conn, addr = s.accept()
                     with conn:
                         if self.verbose >= 1:
-                            print("Server: Client connected by %s" % addr)
+                            print("Server: Client connected by %s" % str(addr))
                         while True:
                             data = conn.recv(1024)
                             if not data:
                                 break
-                            if self.verbose >= 2:
-                                print("Server: Client sent %s" % str(data))
+                            if self.verbose >= 1:
+                                print("Server: Data received %s" % str(data.decode("utf8")))
                             msg: bytes = bytes('Thank you for connecting, I received %s' % data, encoding='utf8')
                             conn.sendall(msg)
             except KeyboardInterrupt as e:
                 s.close()
-                print("Server closed by manual interruption.")
+                print("Server: Closed server by manual interruption.")
             except Exception as e:
                 print(e)
 
@@ -63,7 +63,7 @@ class sLinDAclient(sLinDA):
                 s.sendall(b"Hello, world")
                 data = s.recv(1024)
                 if self.verbose >= 1:
-                    print(f"Received {data!r}")
+                    print(f"Client: received data: {data!r}")
                 s.close()
             except ConnectionRefusedError as e:
                 print("Error: Connection refused by the peer")
