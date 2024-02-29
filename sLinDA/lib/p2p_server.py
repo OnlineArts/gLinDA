@@ -1,3 +1,5 @@
+from .p2p import sLinDAP2P
+
 import socket
 from argparse import ArgumentParser
 
