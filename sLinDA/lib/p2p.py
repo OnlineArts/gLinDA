@@ -6,14 +6,19 @@ from Crypto.Util.Padding import pad, unpad
 
 class sLinDAP2P:
 
+    min_rand = 1000000
+    max_rand = 9999999
+    bytes_len = 3
+
     def __init__(self, args: ArgumentParser, transformations: int = 100000):
         self.verbose = args.verbose
+        self.keyring = sLinDAKeyRing(args)
 
         self.__sha_iter = transformations
-        self.__aes_key = self.__get_aes_key(args)
+        self.__aes_key = self._get_aes_key(args.password)
         self.__aes_iv = self.__get_iv(args)
 
-        self.__test_aes()
+        #self.__test_aes()
 
     def encrypt(self, data: bytes) -> bytes:
         cipher = AES.new(self.__aes_key, AES.MODE_CBC, iv=self.__aes_iv)
@@ -23,19 +28,24 @@ class sLinDAP2P:
     def decrypt(self, ciper: bytes) -> bytes:
         decrypt_cipher = AES.new(self.__aes_key, AES.MODE_CBC, self.__aes_iv)
         data = decrypt_cipher.decrypt(ciper)
-        return unpad(data, AES.block_size)
+        unpadded = None
+        try:
+            unpadded = unpad(data, AES.block_size)
+        except Exception as ex:
+            print("Can not unpadding data, wrong key?")
+        return unpadded
 
-    def encrypt_text(self, text: str) -> bytes:
-        return self.encrypt(bytes(text, "utf8"))
+    #def encrypt_text(self, text: str) -> bytes:
+    #    return self.encrypt(bytes(text, "utf8"))
 
-    def decrypt_text(self, data: bytes) -> str:
-        return self.decrypt(data).decode('utf8')
+    #def decrypt_text(self, data: bytes) -> str:
+    #    return self.decrypt(data).decode('utf8')
 
-    def __get_aes_key(self, args: ArgumentParser):
+    def _get_aes_key(self, passphrase: str):
         if self.verbose >= 2:
             print("Start SHA512 transformations iterations %d" % self.__sha_iter)
         hash = SHA512.new()
-        hash.update(bytes(args.password, encoding='utf8'))
+        hash.update(bytes(passphrase, encoding='utf8'))
         for i in range(0, self.__sha_iter):
             hash.update(hash.digest())
         aes_key = SHA256.new(hash.digest()).digest()
@@ -63,3 +73,18 @@ class sLinDAP2P:
         if self.verbose >= 2:
             print(cipher)
             print(text)
+
+class sLinDAKeyRing:
+
+    _peers: dict = {"R": {}, "S": {}}
+
+    def __init__(self, args: ArgumentParser):
+        pass
+
+    def get_peers(self):
+        return self._peers
+
+    def add_peer(self, identifier, aes_key: bytes, receiver: bool = True):
+        self._peers["R" if receiver else "S"].update({identifier: aes_key})
+
+

@@ -1,6 +1,7 @@
 from .p2p import sLinDAP2P
 
 import socket
+import random
 from argparse import ArgumentParser
 
 class sLinDAserver(sLinDAP2P):
@@ -19,10 +20,8 @@ class sLinDAserver(sLinDAP2P):
         self.__await_responses(host)
 
         if self.verbose >= 1:
-            print("Server: All data received")
-            print("Server: %s" % str(self.answers))
-
-        #self.__test(host)
+            print("Server: All keys received")
+            print("Server: %s" % self.keyring.get_peers())
 
     def __await_responses(self, host: str):
         host, port = host.split(":")
@@ -57,7 +56,8 @@ class sLinDAserver(sLinDAP2P):
                 if not func(conn, addr):
                     break
 
-                if len(self.answers) == self.clients:
+                print("keyring size %d" % len(self.keyring.get_peers()["R"]))
+                if len(self.keyring.get_peers()["R"]) >= self.clients-1:
                     return False, None
             return True, None
 
@@ -66,16 +66,22 @@ class sLinDAserver(sLinDAP2P):
         if not data:
             return False
 
-        data_decrypted = super().decrypt_text(data)
+        data_decrypted = super().decrypt(data)
+        decrypted_number = int.from_bytes(data_decrypted, "big")
+        if data_decrypted is None or not (super().min_rand <= decrypted_number <= super().max_rand):
+            if self.verbose >= 1:
+                print("Server: Received data which can not decrypted")
+            return True
+
         if self.verbose >= 2:
             print("Server: Data received %s" % data_decrypted)
+            print("Server: Decrypted number %d" % decrypted_number)
 
-        decrypt_number = int(data_decrypted)
-        confirm_number = decrypt_number+1
+        confirmation_number = decrypted_number + 1
+        new_key = self._get_aes_key(str(confirmation_number + random.randint(super().min_rand,super().max_rand)))
+        self.keyring.add_peer(confirmation_number, new_key, True)
 
-        conn.sendall(super().encrypt_text(str(confirm_number)))
-
-        self.answers.update({str(addr): data_decrypted})
+        conn.sendall(super().encrypt(confirmation_number.to_bytes(super().bytes_len, "big") + new_key))
         return True
 
     def __test(self, host):

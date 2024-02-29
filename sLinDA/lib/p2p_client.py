@@ -16,22 +16,34 @@ class sLinDAclient(sLinDAP2P):
         host, port = peer.split(":")
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
-                random_number =  random.randint(100,999)
-                msg = super().encrypt_text(text=str(random_number))
+                random_number = random.randint(super().min_rand,super().max_rand)
+                msg = super().encrypt(random_number.to_bytes(3, "big"))
                 if self.verbose >= 1:
                     print("Client: send random number %d" % random_number)
                 s.connect((host, int(port)))
                 s.sendall(msg)
+
                 data = s.recv(1024)
-                decrypted_answer = super().decrypt_text(data)
+                answer = super().decrypt(data)
+                confirmation_number = int.from_bytes(answer[:super().bytes_len], "big")
 
-                if self.verbose >= 2:
-                    print("Client: received data: %s" % str(data))
-                    print("Client: decrypted message: %s" % decrypted_answer)
+                if confirmation_number != (random_number + 1):
+                    s.close()
+                    print("Client: Confirmation with %s failed, ignore peer" % peer)
 
-                if self.verbose >= 1:
-                    if int(decrypted_answer) == (random_number+1):
+                else:
+                    if self.verbose >= 1:
                         print("Client: Encrypted communication was successful")
+                    self.keyring.add_peer(peer, answer[3:], False)
+
+                #if self.verbose >= 2:
+                #    print("Client: received data: %s" % str(data))
+                #    print("Client: decrypted message: %s" % decrypted_answer)
+
+                #if self.verbose >= 1:
+                #    if int(decrypted_answer) == (random_number+1):
+                #        print("Client: Encrypted communication was successful")
+
 
                 s.close()
             except ConnectionRefusedError as e:
