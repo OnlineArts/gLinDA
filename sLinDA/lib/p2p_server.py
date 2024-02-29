@@ -4,6 +4,7 @@ import socket
 import random
 from argparse import ArgumentParser
 
+
 class sLinDAserver(sLinDAP2P):
 
     def __init__(self, args: ArgumentParser):
@@ -56,7 +57,8 @@ class sLinDAserver(sLinDAP2P):
                 if not func(conn, addr):
                     break
 
-                print("keyring size %d" % len(self.keyring.get_peers()["R"]))
+                if self.verbose >= 3:
+                    print("Server: Current keyring size %d" % len(self.keyring.get_peers()["R"]))
                 if len(self.keyring.get_peers()["R"]) >= self.clients-1:
                     return False, None
             return True, None

@@ -1,8 +1,8 @@
+from copy import deepcopy
 from argparse import ArgumentParser
 from Crypto.Hash import MD5, SHA256, SHA512
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
-
 
 class sLinDAP2P:
 
@@ -11,8 +11,10 @@ class sLinDAP2P:
     bytes_len = 3
 
     def __init__(self, args: ArgumentParser, transformations: int = 100000):
+        print(args)
+
         self.verbose = args.verbose
-        self.keyring = sLinDAKeyRing(args)
+        self.keyring = sLinDAKeyring()
 
         self.__sha_iter = transformations
         self.__aes_key = self._get_aes_key(args.password)
@@ -56,7 +58,7 @@ class sLinDAP2P:
         return aes_key
 
     def __get_iv(self, args: ArgumentParser):
-        addresses: list = args.p
+        addresses: list = deepcopy(args.p)
         addresses.append(args.host)
         addresses.sort()
         iv = MD5.new(bytes(str(addresses), encoding='utf8')).digest()
@@ -74,11 +76,11 @@ class sLinDAP2P:
             print(cipher)
             print(text)
 
-class sLinDAKeyRing:
+class sLinDAKeyring:
 
     _peers: dict = {"R": {}, "S": {}}
 
-    def __init__(self, args: ArgumentParser):
+    def __init__(self):
         pass
 
     def get_peers(self):
