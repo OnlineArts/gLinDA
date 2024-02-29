@@ -37,7 +37,6 @@ class sLinDAserver(sLinDAP2P):
 
             try:
                 while True:
-
                     if waiting:
                         waiting, response = self.__basic_inner_loop(s, func)
                     else:
@@ -60,28 +59,23 @@ class sLinDAserver(sLinDAP2P):
 
                 if len(self.answers) == self.clients:
                     return False, None
-
-                """data = conn.recv(1024)
-                if not data:
-                    break
-
-                if self.verbose >= 1:
-                    print("Server: Data received %s" % str(data.decode("utf8")))
-                msg: bytes = bytes('Thank you for connecting, I received %s' % data, encoding='utf8')
-                conn.sendall(msg)"""
             return True, None
 
     def __first_contact(self, conn, addr):
         data = conn.recv(1024)
         if not data:
             return False
-        if self.verbose >= 1:
-            print("Server: Data received %s" % str(data.decode("utf8")))
-        #msg: bytes = bytes('Thank you for connecting, I received %s' % data, encoding='utf8')
-        msg: bytes = bytes('"OK"', encoding='utf8')
-        conn.sendall(msg)
 
-        self.answers.update({str(addr): str(data.decode("utf8"))})
+        data_decrypted = super().decrypt_text(data)
+        if self.verbose >= 2:
+            print("Server: Data received %s" % data_decrypted)
+
+        decrypt_number = int(data_decrypted)
+        confirm_number = decrypt_number+1
+
+        conn.sendall(super().encrypt_text(str(confirm_number)))
+
+        self.answers.update({str(addr): data_decrypted})
         return True
 
     def __test(self, host):

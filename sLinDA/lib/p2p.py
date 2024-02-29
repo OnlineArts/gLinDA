@@ -15,21 +15,21 @@ class sLinDAP2P:
 
         self.__test_aes()
 
-    def _encrypt(self, data: bytes) -> bytes:
+    def encrypt(self, data: bytes) -> bytes:
         cipher = AES.new(self.__aes_key, AES.MODE_CBC, iv=self.__aes_iv)
         cipher_text = cipher.encrypt(pad(data, AES.block_size))
         return cipher_text
 
-    def _decrypt(self, ciper: bytes) -> bytes:
+    def decrypt(self, ciper: bytes) -> bytes:
         decrypt_cipher = AES.new(self.__aes_key, AES.MODE_CBC, self.__aes_iv)
         data = decrypt_cipher.decrypt(ciper)
         return unpad(data, AES.block_size)
 
-    def _encrypt_text(self, text: str) -> bytes:
-        return self._encrypt(bytes(text, "utf8"))
+    def encrypt_text(self, text: str) -> bytes:
+        return self.encrypt(bytes(text, "utf8"))
 
-    def _decrypt_text(self, data: bytes) -> str:
-        return self._decrypt(data).decode('utf8')
+    def decrypt_text(self, data: bytes) -> str:
+        return self.decrypt(data).decode('utf8')
 
     def __get_aes_key(self, args: ArgumentParser):
         if self.verbose >= 2:
@@ -57,8 +57,8 @@ class sLinDAP2P:
         return iv
 
     def __test_aes(self):
-        cipher = self._encrypt_text("Test")
-        text = self._decrypt_text(cipher)
+        cipher = self.encrypt_text("Test")
+        text = self.decrypt_text(cipher)
 
         if self.verbose >= 2:
             print(cipher)

@@ -17,14 +17,22 @@ class sLinDAclient(sLinDAP2P):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:
                 random_number =  random.randint(100,999)
+                msg = super().encrypt_text(text=str(random_number))
                 if self.verbose >= 1:
                     print("Client: send random number %d" % random_number)
-                msg = b'%d' % random_number
                 s.connect((host, int(port)))
                 s.sendall(msg)
                 data = s.recv(1024)
+                decrypted_answer = super().decrypt_text(data)
+
+                if self.verbose >= 2:
+                    print("Client: received data: %s" % str(data))
+                    print("Client: decrypted message: %s" % decrypted_answer)
+
                 if self.verbose >= 1:
-                    print("Client: received data: %s" % str(data.decode('utf8')))
+                    if int(decrypted_answer) == (random_number+1):
+                        print("Client: Encrypted communication was successful")
+
                 s.close()
             except ConnectionRefusedError as e:
                 print("Error: Connection refused by the peer")
