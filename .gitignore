@@ -1,3 +1,5 @@
 .idea/*
 dist/*
 sLinDA.egg-info/*
+sLinDA/__pycache__/*
+sLinDA/lib/__pycache__/*
