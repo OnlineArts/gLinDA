@@ -36,15 +36,6 @@ class sLinDAclient(sLinDAP2P):
                         print("Client: Encrypted communication was successful")
                     self.keyring.add_peer(peer, answer[3:], False)
 
-                #if self.verbose >= 2:
-                #    print("Client: received data: %s" % str(data))
-                #    print("Client: decrypted message: %s" % decrypted_answer)
-
-                #if self.verbose >= 1:
-                #    if int(decrypted_answer) == (random_number+1):
-                #        print("Client: Encrypted communication was successful")
-
-
                 s.close()
             except ConnectionRefusedError as e:
                 print("Error: Connection refused by the peer")
