@@ -4,31 +4,44 @@ from Crypto.Hash import MD5, SHA256, SHA512
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
+
 class sLinDAP2P:
 
-    min_rand = 1000000
-    max_rand = 9999999
-    bytes_len = 3
+    sha_iter: int = 100000
+    min_rand: int = 1000000
+    max_rand: int = 9999999
+    bytes_len: int = 3
+    waiting_time: int = 2
 
-    def __init__(self, args: ArgumentParser, transformations: int = 100000):
-        print(args)
+    def __init__(self, args: ArgumentParser, keyring: object = None):
+        self.verbose: int = args.verbose
+        self.host: str = args.host
+        self.peers: list = args.p
+        self.test: str = args.test
 
-        self.verbose = args.verbose
-        self.keyring = sLinDAKeyring()
-
-        self.__sha_iter = transformations
-        self.__aes_key = self._get_aes_key(args.password)
+        if keyring is not None:
+            self.keyring = keyring
+            print(self.keyring)
+        else:
+            self.keyring = sLinDAKeyring()
+            self.__aes_key = self._get_aes_key(args.password)
         self.__aes_iv = self.__get_iv(args)
 
-        #self.__test_aes()
-
-    def encrypt(self, data: bytes) -> bytes:
-        cipher = AES.new(self.__aes_key, AES.MODE_CBC, iv=self.__aes_iv)
+    def encrypt(self, data: bytes, aes_key: bytes = None) -> bytes:
+        if aes_key is None:
+            key = self.__aes_key
+        else:
+            key = aes_key
+        cipher = AES.new(key, AES.MODE_CBC, iv=self.__aes_iv)
         cipher_text = cipher.encrypt(pad(data, AES.block_size))
         return cipher_text
 
-    def decrypt(self, ciper: bytes) -> bytes:
-        decrypt_cipher = AES.new(self.__aes_key, AES.MODE_CBC, self.__aes_iv)
+    def decrypt(self, ciper: bytes, aes_key: bytes = None) -> bytes:
+        if aes_key is None:
+            key = self.__aes_key
+        else:
+            key = aes_key
+        decrypt_cipher = AES.new(key, AES.MODE_CBC, self.__aes_iv)
         data = decrypt_cipher.decrypt(ciper)
         unpadded = None
         try:
@@ -37,30 +50,34 @@ class sLinDAP2P:
             print("Can not unpadding data, wrong key?")
         return unpadded
 
-    #def encrypt_text(self, text: str) -> bytes:
-    #    return self.encrypt(bytes(text, "utf8"))
-
-    #def decrypt_text(self, data: bytes) -> str:
-    #    return self.decrypt(data).decode('utf8')
-
-    def _get_aes_key(self, passphrase: str):
-        if self.verbose >= 2:
-            print("Start SHA512 transformations iterations %d" % self.__sha_iter)
+    def _get_aes_key(self, password: str, skip_iterations: bool = False):
         hash = SHA512.new()
-        hash.update(bytes(passphrase, encoding='utf8'))
-        for i in range(0, self.__sha_iter):
-            hash.update(hash.digest())
+        hash.update(bytes(password, encoding='utf8'))
+        if not skip_iterations:
+            if self.verbose >= 2:
+                print("Start SHA512 transformations iterations %d" % self.sha_iter)
+            for i in range(0, self.sha_iter):
+                hash.update(hash.digest())
         aes_key = SHA256.new(hash.digest()).digest()
 
         if self.verbose >= 2:
-            print("AES Key: %s" % aes_key)
+            print("New AES key: %s" % aes_key)
 
         return aes_key
 
     def __get_iv(self, args: ArgumentParser):
+        """
+        Creates an initialization vector for the AES CBC mode.
+        The vector have to be the same for each peer, therefore it
+        will be generated from the list of all involved host.
+        :param args: all arguments
+        :return:
+        """
         addresses: list = deepcopy(args.p)
         addresses.append(args.host)
         addresses.sort()
+
+        # put the list into an MD5 hash to achieve the right byte size.
         iv = MD5.new(bytes(str(addresses), encoding='utf8')).digest()
 
         if self.verbose >= 2:
@@ -68,13 +85,6 @@ class sLinDAP2P:
 
         return iv
 
-    def __test_aes(self):
-        cipher = self.encrypt_text("Test")
-        text = self.decrypt_text(cipher)
-
-        if self.verbose >= 2:
-            print(cipher)
-            print(text)
 
 class sLinDAKeyring:
 
@@ -83,10 +93,12 @@ class sLinDAKeyring:
     def __init__(self):
         pass
 
-    def get_peers(self):
-        return self._peers
-
     def add_peer(self, identifier, aes_key: bytes, receiver: bool = True):
         self._peers["R" if receiver else "S"].update({identifier: aes_key})
 
+    def get_peers(self):
+        return self._peers
+
+    def __len__(self):
+        return len(self._peers["R"].keys()) + len(self._peers["S"].keys())
 

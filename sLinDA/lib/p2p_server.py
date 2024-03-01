@@ -7,10 +7,9 @@ from argparse import ArgumentParser
 
 class sLinDAserver(sLinDAP2P):
 
-    def __init__(self, args: ArgumentParser):
-        super().__init__(args)
-        host = args.host
-        clients = len(args.p)
+    def __init__(self, args: ArgumentParser, keyring: object = None):
+        super().__init__(args, keyring)
+        clients = len(self.peers)
 
         if clients == 0:
             print("No clients awaiting, terminating server")
@@ -18,10 +17,11 @@ class sLinDAserver(sLinDAP2P):
 
         self.answers: dict = {}
         self.clients: int = clients
-        self.__await_responses(host)
+        self.__await_responses(self.host)
 
         if self.verbose >= 1:
             print("Server: All keys received")
+        if self.verbose >= 2:
             print("Server: %s" % self.keyring.get_peers())
 
     def __await_responses(self, host: str):
@@ -59,7 +59,7 @@ class sLinDAserver(sLinDAP2P):
 
                 if self.verbose >= 3:
                     print("Server: Current keyring size %d" % len(self.keyring.get_peers()["R"]))
-                if len(self.keyring.get_peers()["R"]) >= self.clients-1:
+                if len(self.keyring.get_peers()["R"]) >= self.clients:
                     return False, None
             return True, None
 
@@ -80,7 +80,7 @@ class sLinDAserver(sLinDAP2P):
             print("Server: Decrypted number %d" % decrypted_number)
 
         confirmation_number = decrypted_number + 1
-        new_key = self._get_aes_key(str(confirmation_number + random.randint(super().min_rand,super().max_rand)))
+        new_key = self._get_aes_key(str(confirmation_number + random.randint(super().min_rand,super().max_rand)), True)
         self.keyring.add_peer(confirmation_number, new_key, True)
 
         conn.sendall(super().encrypt(confirmation_number.to_bytes(super().bytes_len, "big") + new_key))
