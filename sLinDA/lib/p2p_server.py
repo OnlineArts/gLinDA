@@ -7,28 +7,29 @@ from argparse import ArgumentParser
 
 class sLinDAserver(sLinDAP2P):
 
-    def __init__(self, args: ArgumentParser, keyring: object = None):
-        super().__init__(args, keyring)
-        clients = len(self.peers)
+    cache: bytes = bytes()
 
-        if clients == 0:
+    def __init__(self, args: ArgumentParser, keyring: object = None, initial: bool = False):
+        super().__init__(args, keyring)
+        self.answers: dict = {}
+        self.nr_clients: int = len(self.peers)
+
+        if self.nr_clients == 0:
             print("No clients awaiting, terminating server")
             exit(100)
 
-        self.answers: dict = {}
-        self.clients: int = clients
-        self.__await_responses(self.host)
+        if initial:
+            self.__await_responses(self.host, self.keyring.get_peers()["R"], self.__first_contact)
+        else:
+            self.__await_responses(self.host, self.answers, self.__reception)
+            print(self.answers)
 
-        if self.verbose >= 1:
-            print("Server: All keys received")
+    def __await_responses(self, host: str, bucket, func: object):
         if self.verbose >= 2:
-            print("Server: %s" % self.keyring.get_peers())
-
-    def __await_responses(self, host: str):
+            print('Starting server on %s' % host)
         host, port = host.split(":")
 
         waiting = True
-        func = self.__first_contact
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -38,7 +39,7 @@ class sLinDAserver(sLinDAP2P):
             try:
                 while True:
                     if waiting:
-                        waiting, response = self.__basic_inner_loop(s, func)
+                        waiting = self.__inner_loop(s, bucket, func)
                     else:
                         break
             except KeyboardInterrupt as e:
@@ -47,24 +48,80 @@ class sLinDAserver(sLinDAP2P):
             except Exception as e:
                 print(e)
 
-    def __basic_inner_loop(self, s: socket.socket, func):
+    def __inner_loop(self, s: socket.socket, bucket, func):
         conn, addr = s.accept()
         with conn:
             if self.verbose >= 1:
                 print("Server: Client connected by %s" % str(addr))
             while True:
 
+                # TODO: Stop does not work
                 if not func(conn, addr):
                     break
 
                 if self.verbose >= 3:
-                    print("Server: Current keyring size %d" % len(self.keyring.get_peers()["R"]))
-                if len(self.keyring.get_peers()["R"]) >= self.clients:
-                    return False, None
-            return True, None
+                    print("Server: Current bucket size %d" % len(bucket))
+                if len(bucket) >= self.nr_clients:
+                    return False
+            return True
+
+    def __get_identifier(self, data: bytes) -> int:
+        identifier = int.from_bytes(bytes, "big")
+
+        if self.verbose >= 2:
+            print("Server: identifier %d" % identifier)
+
+        return identifier
+
+    def __get_break(self, identifier: int, potential_brake: bytes) -> bool:
+        end, endid = None, None
+        try:
+            if self.verbose >= 3:
+                print("Server: potential end %s" % potential_brake)
+            end = potential_brake[:4].decode("utf8")
+            endid = int.from_bytes(potential_brake[-self.bytes_len:], "big")
+        except UnicodeDecodeError as e:
+            pass
+        except Exception as e:
+            pass
+
+        return (end is not None and endid is not None and end == "END:" and endid == identifier)
+
+    def __reception(self, conn, addr):
+        finish = False
+        data = conn.recv(self.chunk_size)
+        if not data:
+            return False
+
+        identifier = self.__get_identifier(data[:self.bytes_len])
+        if self.verbose >= 2:
+            print("Server: Got %s" % data)
+        end_of_sub = self.__get_break(identifier, data[-(4+self.bytes_len):])
+
+        if end_of_sub:
+            payload = data[self.bytes_len:-(4 + self.bytes_len)]
+        else:
+            payload = data[self.bytes_len:]
+
+        aes_key = self.keyring.for_reception(identifier)
+        decrypted_payload: bytes = self.decrypt(payload, aes_key)
+        self.cache += decrypted_payload
+
+        if self.verbose >= 2:
+            print("Server: Used key %s" % aes_key)
+            print("Server: Decrypted msg %s" % decrypted_payload)
+
+        if finish:
+            if self.verbose >= 2:
+                print("Server: End of submission confirmed")
+            self.answers.update({identifier: self.cache})
+            print(self.answers)
+            return False
+
+        return True
 
     def __first_contact(self, conn, addr):
-        data = conn.recv(1024)
+        data = conn.recv(self.chunk_size)
         if not data:
             return False
 
@@ -85,29 +142,3 @@ class sLinDAserver(sLinDAP2P):
 
         conn.sendall(super().encrypt(confirmation_number.to_bytes(super().bytes_len, "big") + new_key))
         return True
-
-    def __test(self, host):
-        host, port = host.split(":")
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((host, int(port)))
-            s.listen()
-
-            try:
-                while True:
-                    conn, addr = s.accept()
-                    with conn:
-                        if self.verbose >= 1:
-                            print("Server: Client connected by %s" % str(addr))
-                        while True:
-                            data = conn.recv(1024)
-                            if not data:
-                                break
-                            if self.verbose >= 1:
-                                print("Server: Data received %s" % str(data.decode("utf8")))
-                            msg: bytes = bytes('Thank you for connecting, I received %s' % data, encoding='utf8')
-                            conn.sendall(msg)
-            except KeyboardInterrupt as e:
-                s.close()
-                print("Server: Closed server by manual interruption.")
-            except Exception as e:
-                print(e)

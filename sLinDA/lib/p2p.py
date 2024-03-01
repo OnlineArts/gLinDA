@@ -12,6 +12,7 @@ class sLinDAP2P:
     max_rand: int = 9999999
     bytes_len: int = 3
     waiting_time: int = 2
+    chunk_size: int = 1024
 
     def __init__(self, args: ArgumentParser, keyring: object = None):
         self.verbose: int = args.verbose
@@ -102,3 +103,8 @@ class sLinDAKeyring:
     def __len__(self):
         return len(self._peers["R"].keys()) + len(self._peers["S"].keys())
 
+    def for_reception(self, id: int):
+        return self._peers["R"][id]
+
+    def for_submission(self, host: str) -> list:
+        return self._peers["S"][host]
