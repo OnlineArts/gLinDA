@@ -12,6 +12,7 @@ class sLinDAserver(sLinDAP2P):
     def __init__(self, args: ArgumentParser, keyring: object = None, initial: bool = False):
         super().__init__(args, keyring)
         self.answers: dict = {}
+        self.buffer: dict = {}
         self.nr_clients: int = len(self.peers)
 
         if self.nr_clients == 0:
@@ -19,7 +20,7 @@ class sLinDAserver(sLinDAP2P):
             exit(100)
 
         if initial:
-            self.__await_responses(self.host, self.keyring.get_peers()["R"], self.__first_contact)
+            self.__await_responses(self.host, self.keyring.get_peers()["R"], self.__handshake)
         else:
             self.__await_responses(self.host, self.answers, self.__reception)
             print(self.answers)
@@ -46,6 +47,10 @@ class sLinDAserver(sLinDAP2P):
                 s.close()
                 print("Server: Closed server by manual interruption.")
             except Exception as e:
+                if self.verbose >= 2:
+                    import traceback
+                    print(type(e))
+                    print(traceback.print_exc())
                 print(e)
 
     def __inner_loop(self, s: socket.socket, bucket, func):
@@ -62,30 +67,46 @@ class sLinDAserver(sLinDAP2P):
                 if self.verbose >= 3:
                     print("Server: Current bucket size %d" % len(bucket))
                 if len(bucket) >= self.nr_clients:
+                    if self.verbose >= 2:
+                        print("Server #2: Bucket %s" % bucket)
+                        print("Server #2: True-loop condition: %s" % (len(bucket) >= self.nr_clients))
                     return False
             return True
 
     def __get_identifier(self, data: bytes) -> int:
-        identifier = int.from_bytes(bytes, "big")
 
-        if self.verbose >= 2:
-            print("Server: identifier %d" % identifier)
+        if self.verbose >= 3:
+            print("Server #3: potential binary identifier %s" % data)
+
+        try:
+            identifier = int.from_bytes(data, "big")
+        except TypeError:
+            return 0
+
+        if self.verbose >= 3:
+            print("Server #3: identifier %d" % identifier)
 
         return identifier
 
     def __get_break(self, identifier: int, potential_brake: bytes) -> bool:
         end, endid = None, None
         try:
-            if self.verbose >= 3:
-                print("Server: potential end %s" % potential_brake)
             end = potential_brake[:4].decode("utf8")
             endid = int.from_bytes(potential_brake[-self.bytes_len:], "big")
-        except UnicodeDecodeError as e:
-            pass
-        except Exception as e:
-            pass
 
-        return (end is not None and endid is not None and end == "END:" and endid == identifier)
+            if self.verbose >= 3:
+                print("Server #3: expected identifier %d" % identifier)
+                print("Server #3: potential end %s" % potential_brake)
+                print("Server #3: end '%s'" % end)
+                print("Server #3: endid '%d'" % endid)
+
+        except UnicodeDecodeError as e:
+            print(e)
+            return False
+        except Exception as e:
+            print(e)
+            return False
+        return (end is not None and endid is not None) and (end == "END:" and endid == identifier)
 
     def __reception(self, conn, addr):
         finish = False
@@ -100,6 +121,7 @@ class sLinDAserver(sLinDAP2P):
 
         if end_of_sub:
             payload = data[self.bytes_len:-(4 + self.bytes_len)]
+            finish = True
         else:
             payload = data[self.bytes_len:]
 
@@ -108,8 +130,9 @@ class sLinDAserver(sLinDAP2P):
         self.cache += decrypted_payload
 
         if self.verbose >= 2:
+            print("Server: finish %s" % finish)
             print("Server: Used key %s" % aes_key)
-            print("Server: Decrypted msg %s" % decrypted_payload)
+            print("Server: Decrypted data %s" % decrypted_payload)
 
         if finish:
             if self.verbose >= 2:
@@ -120,7 +143,7 @@ class sLinDAserver(sLinDAP2P):
 
         return True
 
-    def __first_contact(self, conn, addr):
+    def __handshake(self, conn, addr):
         data = conn.recv(self.chunk_size)
         if not data:
             return False
