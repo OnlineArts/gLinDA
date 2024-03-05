@@ -12,7 +12,7 @@ class sLinDAP2P:
     max_rand: int = 9999999
     bytes_len: int = 3
     waiting_time: int = 2
-    chunk_size: int = 1024
+    chunk_size: int = 1024000
 
     def __init__(self, args: ArgumentParser, keyring: object = None):
         self.verbose: int = args.verbose
@@ -22,7 +22,6 @@ class sLinDAP2P:
 
         if keyring is not None:
             self.keyring = keyring
-            print(self.keyring)
         else:
             self.keyring = sLinDAKeyring()
             self.__aes_key = self._get_aes_key(args.password)

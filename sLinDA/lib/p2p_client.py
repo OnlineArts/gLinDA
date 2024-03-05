@@ -32,11 +32,12 @@ class sLinDAclient(sLinDAP2P):
             enc_payload = self.encrypt(raw_payload, key)
             msg: bytes = bid + enc_payload + "END:".encode("utf8") + bid
 
-            print("Client: raw Massage: %s" % raw_payload.decode("utf8"))
-            print("Client: target id %d, key %s" % (id, key))
-            print("Client: byte identifier %s" % bid)
-            print("Client: ciper %s" % enc_payload)
-            print("Client: send %s" % msg)
+            if self.verbose >= 2:
+                print("Client #2: raw Massage: %s" % raw_payload)
+                print("Client #2: target id %d, key %s" % (id, key))
+                print("Client #2: byte identifier %s" % bid)
+                print("Client #2: ciper %s" % enc_payload)
+                print("Client #2: send %s" % msg)
 
             while not_connected:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -87,8 +88,11 @@ class sLinDAclient(sLinDAP2P):
 
                     s.close()
                 except ConnectionRefusedError as e:
-                    print("Client: Are you sure the peer %s is reachable?" % peer)
-                    print("Client: Retry connection in %d s" % super().waiting_time)
+                    if self.verbose >= 1:
+                        print("Client #1: Are you sure the peer %s is reachable?" % peer)
+                        print("Client #1: Retry connection in %d s" % super().waiting_time)
+                    else:
+                        print("Client: Try to connect to %s" % peer)
                     time.sleep(super().waiting_time)
                 except Exception as e:
                     print(e)
