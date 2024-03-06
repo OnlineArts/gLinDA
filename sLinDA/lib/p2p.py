@@ -19,6 +19,7 @@ class sLinDAP2P:
         self.host: str = args.host
         self.peers: list = args.p
         self.test: str = args.test
+        self.ignore_wrong_keys = args.ignore_keys
 
         if keyring is not None:
             self.keyring = keyring
@@ -46,8 +47,16 @@ class sLinDAP2P:
         unpadded = None
         try:
             unpadded = unpad(data, AES.block_size)
+        except ValueError as ex:
+            print("Padding failed, probably wrong key?")
+            if not self.ignore_wrong_keys:
+                exit(201)
         except Exception as ex:
-            print("Can not unpadding data, wrong key?")
+            if self.verbose >= 2:
+                import traceback
+                print(type(ex))
+                print(traceback.print_exc())
+            exit(200)
         return unpadded
 
     def _get_aes_key(self, password: str, skip_iterations: bool = False):

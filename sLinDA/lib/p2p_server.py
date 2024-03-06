@@ -14,7 +14,7 @@ class sLinDAserver(sLinDAP2P):
 
         if self.nr_clients == 0:
             print("No clients awaiting, terminating server")
-            exit(100)
+            exit(300)
 
         if initial:
             self.__await_responses(self.host, self.keyring.get_peers()["R"], self.__handshake_keyring)
