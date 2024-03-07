@@ -4,7 +4,7 @@ import pickle
 from argparse import ArgumentParser
 from threading import Thread
 
-from sLinDA.lib.config import sLinDAConfig
+from lib.config import sLinDAConfig
 
 
 class sLinDAWrapper:
@@ -35,8 +35,8 @@ class sLinDAWrapper:
         print(broadcast)
 
         # Broadcast a dictionary as an object
-        #broadcast = self._broadcast_obj({"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)})
-        #print(broadcast)
+        broadcast = self._broadcast_obj({"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)})
+        print(broadcast)
 
         # Broadcast entire files
         """import requests

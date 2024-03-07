@@ -16,7 +16,7 @@ class sLinDAConfig:
             "resolve_host": True
         },
         "LINDA": {
-            "covariants":   None
+            "covariant":    None
         }
     }
     ip_filter: list = ["localhost", "127.0.0.1", "::1"]

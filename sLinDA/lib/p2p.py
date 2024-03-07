@@ -14,18 +14,18 @@ class sLinDAP2P:
     chunk_size: int = 1024000
 
     def __init__(self, config: dict, keyring: object = None):
-        self.config: dict = config
-        self.verbose: int = self.config["P2P"]["verbose"]
-        self.host: str = self.config["P2P"]["host"]
-        self.peers: list = self.config["P2P"]["peers"]
-        self.test: str = self.config["P2P"]["test"]
-        self.ignore_wrong_keys = self.config["P2P"]["ignore_keys"]
+        self.config: dict = config["P2P"]
+        self.verbose: int = self.config["verbose"]
+        self.host: str = self.config["host"]
+        self.peers: list = self.config["peers"]
+        self.test: str = self.config["test"]
+        self.ignore_wrong_keys = self.config["ignore_keys"]
 
         if keyring is not None:
             self.keyring = keyring
         else:
             self.keyring = sLinDAKeyring()
-            self.__aes_key = self._get_aes_key(self.config["P2P"]["password"])
+            self.__aes_key = self._get_aes_key(self.config["password"])
         self.__aes_iv = self.__get_iv(self.config)
 
     def encrypt(self, data: bytes, aes_key: bytes = None) -> bytes:
@@ -82,8 +82,8 @@ class sLinDAP2P:
         :param args: all arguments
         :return:
         """
-        addresses: list = deepcopy(config["P2P"]["peers"])
-        addresses.append(config["P2P"]["host"])
+        addresses: list = deepcopy(config["peers"])
+        addresses.append(config["host"])
         addresses.sort()
 
         # put the list into an MD5 hash to achieve the right byte size.
