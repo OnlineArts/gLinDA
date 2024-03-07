@@ -3,13 +3,12 @@ from .p2p import sLinDAP2P
 import random
 import socket
 import time
-from argparse import ArgumentParser
 
 
 class sLinDAclient(sLinDAP2P):
 
-    def __init__(self, args: ArgumentParser, keyring: object = None, initial: bool = False):
-        super().__init__(args, keyring)
+    def __init__(self, config: dict, keyring: object = None, initial: bool = False):
+        super().__init__(config, keyring)
 
         if initial:
             if self.test is not None and self.test == "client":
@@ -52,8 +51,7 @@ class sLinDAclient(sLinDAP2P):
 
                         s.close()
                     except ConnectionRefusedError as e:
-                        print("Client: Are you sure the peer %s is reachable?" % peer)
-                        print("Client: Retry connection in %d s" % super().waiting_time)
+                        print("Client: Are you sure the peer %s is reachable? Retry in %d s" % (peer, super().waiting_time))
                         time.sleep(super().waiting_time)
                     except Exception as e:
                         print(e)
@@ -90,8 +88,8 @@ class sLinDAclient(sLinDAP2P):
                         s.close()
                     except ConnectionRefusedError as e:
                         if self.verbose >= 1:
-                            print("Client #1: Are you sure the peer %s is reachable?" % peer)
-                            print("Client #1: Retry connection in %d s" % super().waiting_time)
+                            print("Client: Are you sure the peer %s is reachable? Retry in %d s" % (
+                            peer, super().waiting_time))
                         else:
                             print("Client: Try to connect to %s" % peer)
                         time.sleep(super().waiting_time)

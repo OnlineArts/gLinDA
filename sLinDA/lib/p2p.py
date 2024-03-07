@@ -1,5 +1,4 @@
 from copy import deepcopy
-from argparse import ArgumentParser
 from Crypto.Hash import MD5, SHA256, SHA512
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -14,19 +13,20 @@ class sLinDAP2P:
     waiting_time: int = 2
     chunk_size: int = 1024000
 
-    def __init__(self, args: ArgumentParser, keyring: object = None):
-        self.verbose: int = args.verbose
-        self.host: str = args.host
-        self.peers: list = args.p
-        self.test: str = args.test
-        self.ignore_wrong_keys = args.ignore_keys
+    def __init__(self, config: dict, keyring: object = None):
+        self.config: dict = config
+        self.verbose: int = self.config["P2P"]["verbose"]
+        self.host: str = self.config["P2P"]["host"]
+        self.peers: list = self.config["P2P"]["peers"]
+        self.test: str = self.config["P2P"]["test"]
+        self.ignore_wrong_keys = self.config["P2P"]["ignore_keys"]
 
         if keyring is not None:
             self.keyring = keyring
         else:
             self.keyring = sLinDAKeyring()
-            self.__aes_key = self._get_aes_key(args.password)
-        self.__aes_iv = self.__get_iv(args)
+            self.__aes_key = self._get_aes_key(self.config["P2P"]["password"])
+        self.__aes_iv = self.__get_iv(self.config)
 
     def encrypt(self, data: bytes, aes_key: bytes = None) -> bytes:
         if aes_key is None:
@@ -48,7 +48,7 @@ class sLinDAP2P:
         try:
             unpadded = unpad(data, AES.block_size)
         except ValueError as ex:
-            print("Padding failed, probably wrong key?")
+            print("Crypto: Padding failed, probably wrong key?")
             if not self.ignore_wrong_keys:
                 exit(201)
         except Exception as ex:
@@ -70,11 +70,11 @@ class sLinDAP2P:
         aes_key = SHA256.new(hash.digest()).digest()
 
         if self.verbose >= 2:
-            print("New AES key: %s" % aes_key)
+            print("Crypto #2: new AES key: %s" % aes_key)
 
         return aes_key
 
-    def __get_iv(self, args: ArgumentParser):
+    def __get_iv(self, config: dict):
         """
         Creates an initialization vector for the AES CBC mode.
         The vector have to be the same for each peer, therefore it
@@ -82,15 +82,15 @@ class sLinDAP2P:
         :param args: all arguments
         :return:
         """
-        addresses: list = deepcopy(args.p)
-        addresses.append(args.host)
+        addresses: list = deepcopy(config["P2P"]["peers"])
+        addresses.append(config["P2P"]["host"])
         addresses.sort()
 
         # put the list into an MD5 hash to achieve the right byte size.
         iv = MD5.new(bytes(str(addresses), encoding='utf8')).digest()
 
         if self.verbose >= 2:
-            print("Initialization vector: %s" % iv)
+            print("Crypto #2: Initialization vector: %s" % iv)
 
         return iv
 

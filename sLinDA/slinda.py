@@ -17,20 +17,16 @@ class sLinDAWrapper:
         :param arguments: All arguments
         """
 
-        self.config = sLinDAConfig("mygut.ini").get()
-        print(self.config["P2P"]["host"])
-        exit(1)
-
-        self.args = arguments
-        self.verbose = self.args.verbose
+        self.config = sLinDAConfig(arguments).get()
+        self.verbose = self.config["P2P"]["verbose"]
 
         if self.verbose >= 1:
-            print("Awaited clients: %d" % len(self.args.p))
+            print("Awaited clients: %d" % len(self.config["P2P"]["peers"]))
 
-        if len(self.args.p) == 1 and self.args.p[0] == self.args.host:
+        if len(self.config["P2P"]["peers"]) == 1 and self.config["P2P"]["peers"][0] == self.config["P2P"]["host"]:
             print("Self-Test")
 
-        self._initialize_handshake()
+        self.__initialize_keyring()
         self._example_workflow()
 
     def _example_workflow(self):
@@ -47,7 +43,7 @@ class sLinDAWrapper:
         img = requests.get("https://heiderlab.de/wordpress/wp-content/uploads/2019/10/Logo_HeiderLab.png", stream=True).raw.data
         submit = self._broadcast_raw(img)
         for s in submit.keys():
-            with open("/home/roman/%s_picture_%d.png" % (self.args.host, s), "wb") as f:
+            with open("/home/roman/%s_picture_%d.png" % (self.config["P2P"]["host"], s), "wb") as f:
                 f.write(submit[s])
             f.close()"""
 
@@ -89,15 +85,16 @@ class sLinDAWrapper:
         return self._broadcast(object, lambda e: pickle.dumps(e), lambda d: pickle.loads(d), False)
 
     def _broadcast_raw(self, payload: bytes):
-        if self.args.test is not None and self.args.test == "r2client":
+        if self.config["P2P"]["test"] is not None and self.config["P2P"]["test"] == "r2client":
             client = self.run_client()
             client.send_payload(payload)
             return None
-        elif self.args.test is not None and self.args.test == "r2server":
+        elif self.config["P2P"]["test"] is not None and self.config["P2P"]["test"] == "r2server":
             server = self.run_server()
             return server.get_answers()
         else:
-            print("Starting server in a separate thread for broadcasting")
+            if self.verbose >= 1:
+                print("sLinDA: Starting server in a separate thread for broadcasting")
             results: dict = {}
             thread = Thread(target=self.run_server, args=(False, results))
             thread.start()
@@ -108,18 +105,18 @@ class sLinDAWrapper:
                 print("=> Broadcasting finished")
             return results
 
-    def _initialize_handshake(self):
+    def __initialize_keyring(self):
         """
 
         :return:
         """
-        if self.args.test is not None and self.args.test == 'server':
+        if self.config["P2P"]["test"] is not None and self.config["P2P"]["test"] == 'server':
             self.run_server()
-        elif self.args.test is not None and self.args.test == 'client':
+        elif self.config["P2P"]["test"] is not None and self.config["P2P"]["test"] == 'client':
             self.run_client()
         else:
-            keyring = self.rt_mt_initialization()
-            if len(keyring) != (2 * len(self.args.p)):
+            keyring = self.__initialize_handshake()
+            if len(keyring) != (2 * len(self.config["P2P"]["peers"])):
                 print("Keyring incomplete, could not chat with every peer!")
                 exit(101)
             elif self.verbose >= 2:
@@ -128,7 +125,7 @@ class sLinDAWrapper:
                 print("Keyring is complete!")
             self.keyring = keyring
 
-    def rt_mt_initialization(self):
+    def __initialize_handshake(self):
         """
         Runs the multi-thread initialization, handshaking.
         :return: return a full keyring
@@ -148,7 +145,7 @@ class sLinDAWrapper:
         :return: the server class object
         """
         from lib.p2p_server import sLinDAserver
-        server = sLinDAserver(self.args, self.keyring, initial, results)
+        server = sLinDAserver(self.config, self.keyring, initial, results)
         return server
 
     def run_client(self, initial: bool = False):
@@ -157,7 +154,7 @@ class sLinDAWrapper:
         :return: the client class object
         """
         from lib.p2p_client import sLinDAclient
-        client = sLinDAclient(self.args, self.keyring, initial)
+        client = sLinDAclient(self.config, self.keyring, initial)
         return client
 
 
@@ -166,18 +163,17 @@ def main():
     Performs the argument parsing.
     """
     parser = ArgumentParser()
-    parser.add_argument("host", default="localhost:5000",
-                        help="The own host address and port")
-    parser.add_argument("password", default=None, type=str,
+    parser.add_argument("--host", help="The own host address and port")
+    parser.add_argument("-pw", "--password", type=str,
                         help="Mandatory password for communication")
-    parser.add_argument("-p", "-peer", nargs="+", default=["localhost:5000"],
+    parser.add_argument("-p", "--peers", nargs="+",
                         help="A list with peer addresses and ports, e.g. localhost:5000 localhost:5001")
-    parser.add_argument("-t", "--test", type=str, default=None,
-                        help="Developers")
-    parser.add_argument('-v', '--verbose', action='count', default=0,
+    parser.add_argument("-t", "--test", type=str, help="Developers")
+    parser.add_argument('-v', '--verbose', action='count',
                         help="Enables verbose mode, repeat v for a higher verbose mode level")
     parser.add_argument("--ignore-keys", default=False, action='store_true',
                         help="Ignores wrong keys. Will not stop execution if wrong password communication are appearing")
+    parser.add_argument("--config", type=str, help="path to config file")
 
     args = parser.parse_args()
     sLinDAWrapper(args)

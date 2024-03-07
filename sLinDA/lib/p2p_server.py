@@ -2,13 +2,12 @@ from .p2p import sLinDAP2P
 
 import socket
 import random
-from argparse import ArgumentParser
 
 
 class sLinDAserver(sLinDAP2P):
 
-    def __init__(self, args: ArgumentParser, keyring: object = None, initial: bool = False, results: dict = {}):
-        super().__init__(args, keyring)
+    def __init__(self, config: dict, keyring: object = None, initial: bool = False, results: dict = {}):
+        super().__init__(config, keyring)
         self.__answers: dict = {}
         self.nr_clients: int = len(self.peers)
 
