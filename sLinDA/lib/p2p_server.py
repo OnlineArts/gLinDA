@@ -1,10 +1,10 @@
-from .p2p import sLinDAP2P
+from .p2p import gLinDAP2P
 
 import socket
 import random
 
 
-class sLinDAserver(sLinDAP2P):
+class gLinDAserver(gLinDAP2P):
 
     def __init__(self, config: dict, keyring: object = None, initial: bool = False, results: dict = {}):
         super().__init__(config, keyring)

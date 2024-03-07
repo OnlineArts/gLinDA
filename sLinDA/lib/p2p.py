@@ -1,10 +1,12 @@
+import pickle
+from threading import Thread
 from copy import deepcopy
 from Crypto.Hash import MD5, SHA256, SHA512
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
 
-class sLinDAP2P:
+class gLinDAP2P:
 
     sha_iter: int = 100000
     min_rand: int = 1000000
@@ -14,7 +16,7 @@ class sLinDAP2P:
     chunk_size: int = 1024000
 
     def __init__(self, config: dict, keyring: object = None):
-        self.config: dict = config["P2P"]
+        self.config: dict = config
         self.verbose: int = self.config["verbose"]
         self.host: str = self.config["host"]
         self.peers: list = self.config["peers"]
@@ -24,7 +26,7 @@ class sLinDAP2P:
         if keyring is not None:
             self.keyring = keyring
         else:
-            self.keyring = sLinDAKeyring()
+            self.keyring = gLinDAKeyring()
             self.__aes_key = self._get_aes_key(self.config["password"])
         self.__aes_iv = self.__get_iv(self.config)
 
@@ -95,7 +97,130 @@ class sLinDAP2P:
         return iv
 
 
-class sLinDAKeyring:
+class gLinDAP2Prunner:
+
+    keyring: object = None
+
+    def __init__(self, config: dict):
+        self.config = config
+        self.verbose = config["verbose"]
+
+        if self.verbose >= 1:
+            print("Awaited clients: %d" % len(self.config["peers"]))
+
+        self.__initialize_keyring()
+
+    def broadcast_str(self, string: str) -> list:
+        """
+        Broadcast a string and receives a list of strings
+        :param string: the massage submitted from this participant
+        :return: a list of strings from the other participants
+        """
+        return self.broadcast(string, lambda e: str(e).encode("utf8"),
+                              lambda d: bytes(d).decode("utf8"))
+
+    def broadcast_obj(self, object: object) -> list:
+        """
+        Broadcast an object and receives a list of objects
+        :param object: the data object submitted from this participant
+        :return: a list of objects from the other participants
+        """
+        return self.broadcast(object, lambda e: pickle.dumps(e), lambda d: pickle.loads(d), False)
+
+    def broadcast_raw(self, payload: bytes):
+        if self.config["test"] is not None and self.config["test"] == "r2client":
+            client = self.run_client()
+            client.send_payload(payload)
+            return None
+        elif self.config["test"] is not None and self.config["test"] == "r2server":
+            server = self.run_server()
+            return server.get_answers()
+        else:
+            if self.verbose >= 1:
+                print("gLinDA: Starting server in a separate thread for broadcasting")
+            results: dict = {}
+            thread = Thread(target=self.run_server, args=(False, results))
+            thread.start()
+            client = self.run_client()
+            client.send_payload(payload)
+            thread.join()
+            if self.verbose >= 1:
+                print("=> Broadcasting finished")
+            return results
+
+    def broadcast(self, data, encode: callable, decode: callable, as_list: bool = True) -> list:
+        """
+        Submits and receives all types of data. data will be encoded prior submission by the encode function and
+        all participants datas will be decoded by the decode function.
+        :param data: the data that will be broadcast.
+        :param encode: a encoding function, should encode data and return byte arrays
+        :param decode: a decoding function, decoding bytes into the desired data type
+        :param as_list: if False participants data will be provided in dictionaries instead of a list
+        :return:  or dictionary with the values from the other participants.
+        """
+        bucket = [] if as_list else {}
+        bytes_coded_data: bytes = encode(data)
+        reception = self.broadcast_raw(bytes_coded_data)
+
+        for submitter in reception.keys():
+            bucket.append(decode(reception[submitter])) if as_list else (
+                bucket.update({submitter: decode(reception[submitter])}))
+
+        return bucket
+
+    def __initialize_keyring(self):
+        """
+        :return:
+        """
+        if self.config["test"] is not None and self.config["test"] == 'server':
+            self.run_server()
+        elif self.config["test"] is not None and self.config["test"] == 'client':
+            self.run_client()
+        else:
+            keyring = self.__initialize_handshake()
+            if len(keyring) != (2 * len(self.config["peers"])):
+                print("Keyring incomplete, could not chat with every peer!")
+                exit(101)
+            elif self.verbose >= 2:
+                print(keyring.get_peers())
+            elif self.verbose >= 1:
+                print("Keyring is complete!")
+            self.keyring = keyring
+
+    def __initialize_handshake(self):
+        """
+        Runs the multi-thread initialization, handshaking.
+        :return: return a full keyring
+        """
+        print("Starting server in a separate thread for handshaking")
+        thread = Thread(target=self.run_server, args=(True,))
+        thread.start()
+        client = self.run_client(True)
+        thread.join()
+        if self.verbose >= 1:
+            print("==> Handshake complete!")
+        return client.keyring
+
+    def run_server(self, initial: bool = False, results: dict = {}):
+        """
+        Loads the P2P Server class, that is listening.
+        :return: the server class object
+        """
+        from lib.p2p_server import gLinDAserver
+        server = gLinDAserver(self.config, self.keyring, initial, results)
+        return server
+
+    def run_client(self, initial: bool = False):
+        """
+        Loads the P2P Client class, that submits data.
+        :return: the client class object
+        """
+        from lib.p2p_client import gLinDAclient
+        client = gLinDAclient(self.config, self.keyring, initial)
+        return client
+
+
+class gLinDAKeyring:
 
     _peers: dict = {"R": {}, "S": {}}
 

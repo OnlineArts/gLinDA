@@ -1,11 +1,11 @@
-from .p2p import sLinDAP2P
+from .p2p import gLinDAP2P
 
 import random
 import socket
 import time
 
 
-class sLinDAclient(sLinDAP2P):
+class gLinDAclient(gLinDAP2P):
 
     def __init__(self, config: dict, keyring: object = None, initial: bool = False):
         super().__init__(config, keyring)
