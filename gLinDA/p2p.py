@@ -240,7 +240,7 @@ class gLinDAP2Prunner:
         Loads the P2P Server class, that is listening.
         :return: the server class object
         """
-        from gLinDA.lib.p2p_server import gLinDAserver
+        from gLinDA.p2p_server import gLinDAserver
         server = gLinDAserver(self.config, self.keyring, initial, results)
         return server
 
@@ -249,7 +249,7 @@ class gLinDAP2Prunner:
         Loads the P2P Client class, that submits data.
         :return: the client class object
         """
-        from gLinDA.lib.p2p_client import gLinDAclient
+        from gLinDA.p2p_client import gLinDAclient
         client = gLinDAclient(self.config, self.keyring, initial)
         return client
 

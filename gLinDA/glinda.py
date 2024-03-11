@@ -1,6 +1,6 @@
 #!/bin/env python3
-from gLinDA.lib.config import gLinDAConfig
-from gLinDA.lib.p2p import gLinDAP2Prunner
+from gLinDA.config import gLinDAConfig
+from gLinDA.p2p import gLinDAP2Prunner
 
 from argparse import ArgumentParser
 
