@@ -1,9 +1,20 @@
-import pickle
+from pickle import loads, dumps
 from threading import Thread
 from copy import deepcopy
 from Crypto.Hash import MD5, SHA256, SHA512
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
+
+"""
+gLinDAP2P
+
+This parent package carries all required code for the peer-to-peer network, including the multi-threaded 
+implementation and all cryptographic-related handling.
+"""
+
+__version__ = "0.9.0"
+__author__ = 'Roman Martin'
+__credits__ = 'Heinrich Heine University Duesseldorf'
 
 
 class gLinDAP2P:
@@ -31,6 +42,12 @@ class gLinDAP2P:
         self.__aes_iv = self.__get_iv(self.config)
 
     def encrypt(self, data: bytes, aes_key: bytes = None) -> bytes:
+        """
+        Encrypts and pads raw bytes data into a cipher.
+        :param data: the raw data
+        :param aes_key: optionally, an alternative AES key
+        :return: the cipher
+        """
         if aes_key is None:
             key = self.__aes_key
         else:
@@ -40,6 +57,12 @@ class gLinDAP2P:
         return cipher_text
 
     def decrypt(self, ciper: bytes, aes_key: bytes = None) -> bytes:
+        """
+        Decrypts and unpads a ciper to raw data
+        :param ciper: the cipher
+        :param aes_key: optionally, an alternative AES key
+        :return: the raw data
+        """
         if aes_key is None:
             key = self.__aes_key
         else:
@@ -62,6 +85,12 @@ class gLinDAP2P:
         return unpadded
 
     def _get_aes_key(self, password: str, skip_iterations: bool = False):
+        """
+        Generates from the password (over single or multiple iterations of hashing) an AES key.
+        :param password: the shared password
+        :param skip_iterations: if True, performs n iterations of hashing.
+        :return: the AES key
+        """
         hash = SHA512.new()
         hash.update(bytes(password, encoding='utf8'))
         if not skip_iterations:
@@ -123,11 +152,36 @@ class gLinDAP2Prunner:
         """
         Broadcast an object and receives a list of objects
         :param object: the data object submitted from this participant
-        :return: a list of objects from the other participants
+        :return: a list of data from the other participants
         """
-        return self.broadcast(object, lambda e: pickle.dumps(e), lambda d: pickle.loads(d), False)
+        return self.broadcast(object, lambda e: dumps(e), lambda d: loads(d), False)
+
+    def broadcast(self, data, encode: callable, decode: callable, as_list: bool = True) -> list:
+        """
+        Submits and receives all types of data. data will be encoded prior submission by the encode function and
+        all participants datas will be decoded by the decode function.
+        :param data: the data that will be broadcast
+        :param encode: an encoding function, should encode data and return byte arrays
+        :param decode: a decoding function, decoding bytes into the desired data type
+        :param as_list: if False participants data will be provided in dictionaries instead of a list
+        :return: list or dictionary with the values from the other participants.
+        """
+        bucket = [] if as_list else {}
+        bytes_coded_data: bytes = encode(data)
+        reception = self.broadcast_raw(bytes_coded_data)
+
+        for submitter in reception.keys():
+            bucket.append(decode(reception[submitter])) if as_list else (
+                bucket.update({submitter: decode(reception[submitter])}))
+
+        return bucket
 
     def broadcast_raw(self, payload: bytes):
+        """
+        The native function performing broadcasting and collecting in a multi-threaded fashion.
+        :param payload: the data to broadcast
+        :return: a dictionary with all participants results
+        """
         if self.config["test"] is not None and self.config["test"] == "r2client":
             client = self.run_client()
             client.send_payload(payload)
@@ -148,29 +202,9 @@ class gLinDAP2Prunner:
                 print("=> Broadcasting finished")
             return results
 
-    def broadcast(self, data, encode: callable, decode: callable, as_list: bool = True) -> list:
-        """
-        Submits and receives all types of data. data will be encoded prior submission by the encode function and
-        all participants datas will be decoded by the decode function.
-        :param data: the data that will be broadcast.
-        :param encode: a encoding function, should encode data and return byte arrays
-        :param decode: a decoding function, decoding bytes into the desired data type
-        :param as_list: if False participants data will be provided in dictionaries instead of a list
-        :return:  or dictionary with the values from the other participants.
-        """
-        bucket = [] if as_list else {}
-        bytes_coded_data: bytes = encode(data)
-        reception = self.broadcast_raw(bytes_coded_data)
-
-        for submitter in reception.keys():
-            bucket.append(decode(reception[submitter])) if as_list else (
-                bucket.update({submitter: decode(reception[submitter])}))
-
-        return bucket
-
     def __initialize_keyring(self):
         """
-        :return:
+        Manages the handshake and errors; analyses the constructed keyring.
         """
         if self.config["test"] is not None and self.config["test"] == 'server':
             self.run_server()
@@ -206,7 +240,7 @@ class gLinDAP2Prunner:
         Loads the P2P Server class, that is listening.
         :return: the server class object
         """
-        from lib.p2p_server import gLinDAserver
+        from gLinDA.lib.p2p_server import gLinDAserver
         server = gLinDAserver(self.config, self.keyring, initial, results)
         return server
 
@@ -215,14 +249,17 @@ class gLinDAP2Prunner:
         Loads the P2P Client class, that submits data.
         :return: the client class object
         """
-        from lib.p2p_client import gLinDAclient
+        from gLinDA.lib.p2p_client import gLinDAclient
         client = gLinDAclient(self.config, self.keyring, initial)
         return client
 
 
 class gLinDAKeyring:
 
-    _peers: dict = {"R": {}, "S": {}}
+    _peers: dict = {
+        "R": {},    # keys for receiving data
+        "S": {}     # keys for submitting data
+    }
 
     def __init__(self):
         pass

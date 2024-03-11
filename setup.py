@@ -1,20 +1,23 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open('README.md', 'r') as readme:
     long_description = readme.read()
 
 setup(
-    name='sLinDA',
-    version='0.1.0',
-    description='A swarm learning implementation of LinDA',
+    name='gLinDA',
+    version='0.3.0',
+    description='A gossip learning implementation of LinDA',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/sLinDA/',
+    url='https://github.com/gLinDA/',
     author='Leon Fehse',
     author_email='leon.fehse@hhu.de',
     license='BSD 3-clause',
-    packages=['sLinDA'],
-    install_requires=[],
+    packages=find_packages(exclude=[]),
+    install_requires=[
+	"psutil>=5.9.0"
+	"pycryptodome>=3.20.0"
+    ],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Science/Research',

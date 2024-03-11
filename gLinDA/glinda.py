@@ -1,9 +1,8 @@
 #!/bin/env python3
-import random
-from argparse import ArgumentParser
-from lib.config import gLinDAConfig
-from lib.p2p import gLinDAP2Prunner
+from gLinDA.lib.config import gLinDAConfig
+from gLinDA.lib.p2p import gLinDAP2Prunner
 
+from argparse import ArgumentParser
 
 class gLinDAWrapper:
 
@@ -13,6 +12,8 @@ class gLinDAWrapper:
         self._example_workflow()
 
     def _example_workflow(self):
+        import random
+
         # Broadcast a string
         broadcast = self.__p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
         print(broadcast)

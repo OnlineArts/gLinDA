@@ -153,10 +153,10 @@ class gLinDAConfig:
         :return: list of interfaces and addresses
         """
         import psutil
-        for int, snics in psutil.net_if_addrs().items():
+        for interface, snics in psutil.net_if_addrs().items():
             for nic in snics:
                 if nic.family == family:
-                    yield (int, nic.address)
+                    yield (interface, nic.address)
 
     @staticmethod
     def _argument_parser(arguments: argparse.ArgumentParser):

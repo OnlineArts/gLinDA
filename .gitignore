@@ -3,3 +3,4 @@ dist/*
 gLinDA.egg-info/*
 gLinDA/__pycache__/*
 gLinDA/lib/__pycache__/*
+build/*

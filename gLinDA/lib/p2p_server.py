@@ -1,4 +1,4 @@
-from .p2p import gLinDAP2P
+from gLinDA.lib.p2p import gLinDAP2P
 
 import socket
 import random
