@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 with open('README.md', 'r') as readme:
     long_description = readme.read()
@@ -13,7 +13,7 @@ setup(
     author='Leon Fehse',
     author_email='leon.fehse@hhu.de',
     license='BSD 3-clause',
-    packages=find_packages(exclude=[]),
+    packages=['gLinDA'],
     install_requires=[
 	"psutil>=5.9.0"
 	"pycryptodome>=3.20.0"
