@@ -1,5 +1,5 @@
 #!/bin/env python3
-class LinDa:
+class LinDA:
 
     def __init__(self):
         print("hallo")
