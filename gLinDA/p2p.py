@@ -17,74 +17,77 @@ __author__ = 'Roman Martin'
 __credits__ = 'Heinrich Heine University Duesseldorf'
 
 
-class gLinDAP2P:
+class P2P:
 
-    sha_iter: int = 100000
     min_rand: int = 1000000
     max_rand: int = 9999999
     bytes_len: int = 3
     waiting_time: int = 2
     chunk_size: int = 1024000
+    symmetric = True
 
     def __init__(self, config: dict, keyring: object = None):
         self.config: dict = config
         self.verbose: int = self.config["verbose"]
         self.host: str = self.config["host"]
         self.peers: list = self.config["peers"]
-        self.test: str = self.config["test"]
         self.ignore_wrong_keys = self.config["ignore_keys"]
 
-        if keyring is not None:
-            self.keyring = keyring
+        if self.symmetric:
+            self.encryption = EncryptionSymmetric()
         else:
-            self.keyring = gLinDAKeyring()
-            self.__aes_key = self._get_aes_key(self.config["password"])
-        self.__aes_iv = self.__get_iv(self.config)
+            self.encryption = EncryptionAsymmetric()
 
-    def encrypt(self, data: bytes, aes_key: bytes = None) -> bytes:
+        if keyring is None:
+            self.keyring = gLinDAKeyring()
+            self.key = self.encryption.get_key(self.config["password"], self.verbose >= 2)
+            # Only for symmetric encryption required
+            if isinstance(self.encryption, EncryptionSymmetric):
+                self.keyring.set_iv(self.encryption.get_iv(self.config, self.verbose >= 2))
+        else:
+            self.keyring = keyring
+
+
+class EncryptionSymmetric:
+
+    @staticmethod
+    def encrypt(data: bytes, aes_key: bytes, init_vector: bytes) -> bytes:
         """
         Encrypts and pads raw bytes data into a cipher.
         :param data: the raw data
         :param aes_key: optionally, an alternative AES key
         :return: the cipher
         """
-        if aes_key is None:
-            key = self.__aes_key
-        else:
-            key = aes_key
-        cipher = AES.new(key, AES.MODE_CBC, iv=self.__aes_iv)
+        cipher = AES.new(aes_key, AES.MODE_CBC, iv=init_vector)
         cipher_text = cipher.encrypt(pad(data, AES.block_size))
         return cipher_text
 
-    def decrypt(self, ciper: bytes, aes_key: bytes = None) -> bytes:
+    @staticmethod
+    def decrypt(ciper: bytes, aes_key: bytes, init_vector: bytes, ignore_wrong_keys: bool = True) -> bytes:
         """
         Decrypts and unpads a ciper to raw data
         :param ciper: the cipher
         :param aes_key: optionally, an alternative AES key
         :return: the raw data
         """
-        if aes_key is None:
-            key = self.__aes_key
-        else:
-            key = aes_key
-        decrypt_cipher = AES.new(key, AES.MODE_CBC, self.__aes_iv)
+        decrypt_cipher = AES.new(aes_key, AES.MODE_CBC, init_vector)
         data = decrypt_cipher.decrypt(ciper)
         unpadded = None
         try:
             unpadded = unpad(data, AES.block_size)
         except ValueError as ex:
             print("Crypto: Padding failed, probably wrong key?")
-            if not self.ignore_wrong_keys:
+            if not ignore_wrong_keys:
                 exit(201)
         except Exception as ex:
-            if self.verbose >= 2:
-                import traceback
-                print(type(ex))
-                print(traceback.print_exc())
+            import traceback
+            print(type(ex))
+            print(traceback.print_exc())
             exit(200)
         return unpadded
 
-    def _get_aes_key(self, password: str, skip_iterations: bool = False):
+    @staticmethod
+    def get_key(password: str, verbose: bool = True, iterations: int = 100000, skip_iterations: bool = False):
         """
         Generates from the password (over single or multiple iterations of hashing) an AES key.
         :param password: the shared password
@@ -94,18 +97,19 @@ class gLinDAP2P:
         hash = SHA512.new()
         hash.update(bytes(password, encoding='utf8'))
         if not skip_iterations:
-            if self.verbose >= 2:
-                print("Start SHA512 transformations iterations %d" % self.sha_iter)
-            for i in range(0, self.sha_iter):
+            if verbose:
+                print("EncryptionSymmetric: Start SHA512 transformations iterations %d" % iterations)
+            for i in range(0, iterations):
                 hash.update(hash.digest())
         aes_key = SHA256.new(hash.digest()).digest()
 
-        if self.verbose >= 2:
-            print("Crypto #2: new AES key: %s" % aes_key)
+        if verbose:
+            print("EncryptionSymmetric: new AES key: %s" % aes_key)
 
         return aes_key
 
-    def __get_iv(self, config: dict):
+    @staticmethod
+    def get_iv(config: dict, verbose: bool = True):
         """
         Creates an initialization vector for the AES CBC mode
         The vector have to be the same for each peer, therefore it
@@ -120,10 +124,29 @@ class gLinDAP2P:
         # put the list into an MD5 hash to achieve the right byte size.
         iv = MD5.new(bytes(str(addresses), encoding='utf8')).digest()
 
-        if self.verbose >= 2:
-            print("Crypto #2: Initialization vector: %s" % iv)
+        if verbose:
+            print("EncryptionSymmetric: Initialization vector: %s" % iv)
 
         return iv
+
+
+class EncryptionAsymmetric:
+
+    @staticmethod
+    def encrypt(data: bytes, aes_key: bytes, init_vector: bytes) -> bytes:
+        pass
+
+    @staticmethod
+    def decrypt(ciper: bytes, aes_key: bytes, init_vector: bytes, ignore_wrong_keys: bool = True) -> bytes:
+        pass
+
+    @staticmethod
+    def get_key(password: str, verbose: bool = True, iterations: int = 100000, skip_iterations: bool = False):
+        pass
+
+    @staticmethod
+    def get_iv(config: dict, verbose: bool = True):
+        pass
 
 
 class gLinDAP2Prunner:
@@ -182,11 +205,11 @@ class gLinDAP2Prunner:
         :param payload: the data to broadcast
         :return: a dictionary with all participants results
         """
-        if self.config["test"] is not None and self.config["test"] == "r2client":
+        if "test" in self.config and self.config["test"] == "r2client":
             client = self.run_client()
             client.send_payload(payload)
             return None
-        elif self.config["test"] is not None and self.config["test"] == "r2server":
+        elif "test" in self.config and self.config["test"] == "r2server":
             server = self.run_server()
             return server.get_answers()
         else:
@@ -206,10 +229,12 @@ class gLinDAP2Prunner:
         """
         Manages the handshake and errors; analyses the constructed keyring.
         """
-        if self.config["test"] is not None and self.config["test"] == 'server':
-            self.run_server()
-        elif self.config["test"] is not None and self.config["test"] == 'client':
-            self.run_client()
+        if "test" in self.config is not None and self.config["test"] == 'server':
+            self.run_server(True)
+            exit(0)
+        elif "test" in self.config is not None and self.config["test"] == 'client':
+            self.run_client(True)
+            exit(0)
         else:
             keyring = self.__initialize_handshake()
             if len(keyring) != (2 * len(self.config["peers"])):
@@ -260,6 +285,7 @@ class gLinDAKeyring:
         "R": {},    # keys for receiving data
         "S": {}     # keys for submitting data
     }
+    _iv = None
 
     def __init__(self):
         pass
@@ -279,9 +305,21 @@ class gLinDAKeyring:
     def for_submission(self, host: str) -> list:
         return self._peers["S"][host]
 
+    def get_iv(self):
+        return self._iv
 
-class gLinDAPackage:
+    def set_iv(self, init_vector: bytes):
+        self._iv = init_vector
+
+
+class P2PPackage:
     
     header: bytes = bytes()
     msg: bytes = bytes()
     stop: bytes = bytes()
+
+    def load(self):
+        pass
+
+    def get(self):
+        pass

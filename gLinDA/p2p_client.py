@@ -1,23 +1,20 @@
-from p2p import gLinDAP2P
+from p2p import P2P, gLinDAKeyring
 
 import random
 import socket
 import time
 
 
-class gLinDAclient(gLinDAP2P):
+class gLinDAclient(P2P):
 
-    def __init__(self, config: dict, keyring: object = None, initial: bool = False):
+    def __init__(self, config: dict, keyring: gLinDAKeyring = None, initial: bool = False):
         super().__init__(config, keyring)
 
         if initial:
-            if self.test is not None and self.test == "client":
-                self.__initiate_communication(self.peers[0])
-            else:
-                for peer in self.peers:
-                    self.__initiate_communication(peer)
-                if self.verbose >= 1:
-                    print("Client: I'm done!")
+            for peer in self.peers:
+                self.__initiate_communication(peer)
+            if self.verbose >= 1:
+                print("Client: I'm done!")
 
     def send_payload(self, raw_payload: bytes):
         for peer in self.peers:
@@ -28,7 +25,11 @@ class gLinDAclient(gLinDAP2P):
             id, key = self.keyring.for_submission(peer)
             bid: bytes = int(id).to_bytes(self.bytes_len, "big")
 
-            enc_payload = self.encrypt(raw_payload, key)
+            enc_payload = self.encryption.encrypt(
+                raw_payload,
+                key,
+                self.keyring.get_iv()
+            )
             msg: bytes = bid + enc_payload + "END:".encode("utf8") + bid
 
             if self.verbose >= 2:
@@ -66,14 +67,26 @@ class gLinDAclient(gLinDAP2P):
                         s.connect((host, int(port)))
                         not_connected = False
                         random_number = random.randint(super().min_rand, super().max_rand)
-                        msg = super().encrypt(random_number.to_bytes(3, "big"))
+
+                        msg = self.encryption.encrypt(
+                            random_number.to_bytes(3, "big"),
+                            self.key,
+                            self.keyring.get_iv()
+                        )
+
                         if self.verbose >= 1:
                             print("Client: send random number %d" % random_number)
 
                         s.sendall(msg)
 
                         data = s.recv(self.chunk_size)
-                        answer = super().decrypt(data)
+
+                        answer = self.encryption.decrypt(
+                            data,
+                            self.key,
+                            self.keyring.get_iv()
+                        )
+
                         confirmation_number = int.from_bytes(answer[:super().bytes_len], "big")
 
                         if confirmation_number != (random_number + 1):
@@ -83,7 +96,7 @@ class gLinDAclient(gLinDAP2P):
                         else:
                             if self.verbose >= 1:
                                 print("Client: Encrypted communication was successful")
-                            self.keyring.add_peer(peer, (confirmation_number, answer[3:]), False)
+                            self.keyring.add_peer(peer, (confirmation_number, answer[self.bytes_len:]), False)
 
                         s.close()
                     except ConnectionRefusedError as e:

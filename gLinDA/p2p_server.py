@@ -1,12 +1,12 @@
-from p2p import gLinDAP2P
+from p2p import P2P, gLinDAKeyring
 
 import socket
 import random
 
 
-class gLinDAserver(gLinDAP2P):
+class gLinDAserver(P2P):
 
-    def __init__(self, config: dict, keyring: object = None, initial: bool = False, results: dict = {}):
+    def __init__(self, config: dict, keyring: gLinDAKeyring = None, initial: bool = False, results: dict = {}):
         super().__init__(config, keyring)
         self.__answers: dict = {}
         self.nr_clients: int = len(self.peers)
@@ -59,7 +59,6 @@ class gLinDAserver(gLinDAP2P):
                 if len(bucket) >= self.nr_clients:
                     return False
 
-                # TODO: Stop does not work
                 if not func(conn, addr, bucket):
                     break
 
@@ -120,12 +119,16 @@ class gLinDAserver(gLinDAP2P):
             else:
                 payload = data[self.bytes_len:]
 
-            aes_key = self.keyring.for_reception(identifier)
-            decrypted_payload: bytes = self.decrypt(payload, aes_key)
+            key = self.keyring.for_reception(identifier)
+            decrypted_payload: bytes = self.encryption.decrypt(
+                payload,
+                key,
+                self.keyring.get_iv()
+            )
             cache += decrypted_payload
 
             if self.verbose >= 2:
-                print("Server #2: Used key %s" % aes_key)
+                print("Server #2: Used key %s" % key)
                 print("Server #2: Decrypted data %s" % decrypted_payload)
 
             if finish:
@@ -140,8 +143,14 @@ class gLinDAserver(gLinDAP2P):
         if not data:
             return False
 
-        data_decrypted = super().decrypt(data)
+        data_decrypted = self.encryption.decrypt(
+            data,
+            self.key,
+            self.keyring.get_iv()
+        )
+
         decrypted_number = int.from_bytes(data_decrypted, "big")
+
         if data_decrypted is None or not (super().min_rand <= decrypted_number <= super().max_rand):
             if self.verbose >= 1:
                 print("Server #1: Received data which can not decrypted")
@@ -152,8 +161,14 @@ class gLinDAserver(gLinDAP2P):
             print("Server #2: Decrypted number %d" % decrypted_number)
 
         confirmation_number = decrypted_number + 1
-        new_key = self._get_aes_key(str(confirmation_number + random.randint(super().min_rand,super().max_rand)), True)
+
+        new_key = self.encryption.get_key(str(confirmation_number + random.randint(super().min_rand,super().max_rand)), True)
+
         self.keyring.add_peer(confirmation_number, new_key, True)
 
-        conn.sendall(super().encrypt(confirmation_number.to_bytes(super().bytes_len, "big") + new_key))
+        conn.sendall(self.encryption.encrypt(
+            confirmation_number.to_bytes(super().bytes_len, "big") + new_key,
+            self.key,
+            self.keyring.get_iv()
+        ))
         return True

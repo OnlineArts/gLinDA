@@ -4,6 +4,7 @@ from p2p import gLinDAP2Prunner
 
 from argparse import ArgumentParser
 
+
 class gLinDAWrapper:
 
     def __init__(self, arguments: ArgumentParser):
@@ -15,8 +16,8 @@ class gLinDAWrapper:
         import random
 
         # Broadcast a string
-        #broadcast = self.__p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
-        #print(broadcast)
+        broadcast = self.__p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
+        print(broadcast)
 
         # Broadcast a dictionary as an object
         #broadcast = self.__p2p.broadcast_obj({"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)})
