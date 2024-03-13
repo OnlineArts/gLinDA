@@ -1,9 +1,9 @@
-from gLinDA.linda import LinDa
-from gLinDA.glinda import gLinDAWrapper
-from gLinDA.config import gLinDAConfig
-from gLinDA.p2p import gLinDAP2P, gLinDAKeyring, gLinDAP2Prunner
-from gLinDA.p2p_client import gLinDAclient
-from gLinDA.p2p_server import gLinDAserver
+from .linda import LinDA
+from .glinda import gLinDAWrapper
+from .config import gLinDAConfig
+from .p2p import gLinDAP2P, gLinDAKeyring, gLinDAP2Prunner
+from .p2p_client import gLinDAclient
+from .p2p_server import gLinDAserver
 
 """
 gLinDA

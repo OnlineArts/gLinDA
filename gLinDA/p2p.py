@@ -88,7 +88,7 @@ class gLinDAP2P:
         """
         Generates from the password (over single or multiple iterations of hashing) an AES key.
         :param password: the shared password
-        :param skip_iterations: if True, performs n iterations of hashing.
+        :param skip_iterations: if True, performs n iterations of hashing
         :return: the AES key
         """
         hash = SHA512.new()
@@ -107,9 +107,9 @@ class gLinDAP2P:
 
     def __get_iv(self, config: dict):
         """
-        Creates an initialization vector for the AES CBC mode.
+        Creates an initialization vector for the AES CBC mode
         The vector have to be the same for each peer, therefore it
-        will be generated from the list of all involved host.
+        will be generated from the list of all involved host
         :param args: all arguments
         :return:
         """
@@ -163,8 +163,8 @@ class gLinDAP2Prunner:
         :param data: the data that will be broadcast
         :param encode: an encoding function, should encode data and return byte arrays
         :param decode: a decoding function, decoding bytes into the desired data type
-        :param as_list: if False participants data will be provided in dictionaries instead of a list
-        :return: list or dictionary with the values from the other participants.
+        :param as_list: if False participants data will be provided as a dictionary
+        :return: list or dictionary with the values from the other participants
         """
         bucket = [] if as_list else {}
         bytes_coded_data: bytes = encode(data)
@@ -240,7 +240,7 @@ class gLinDAP2Prunner:
         Loads the P2P Server class, that is listening.
         :return: the server class object
         """
-        from gLinDA.p2p_server import gLinDAserver
+        from p2p_server import gLinDAserver
         server = gLinDAserver(self.config, self.keyring, initial, results)
         return server
 
@@ -249,7 +249,7 @@ class gLinDAP2Prunner:
         Loads the P2P Client class, that submits data.
         :return: the client class object
         """
-        from gLinDA.p2p_client import gLinDAclient
+        from p2p_client import gLinDAclient
         client = gLinDAclient(self.config, self.keyring, initial)
         return client
 
@@ -278,3 +278,10 @@ class gLinDAKeyring:
 
     def for_submission(self, host: str) -> list:
         return self._peers["S"][host]
+
+
+class gLinDAPackage:
+    
+    header: bytes = bytes()
+    msg: bytes = bytes()
+    stop: bytes = bytes()

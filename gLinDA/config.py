@@ -40,6 +40,9 @@ class gLinDAConfig:
             print("Config #1: Initial configuration defined:")
             print(self.config)
 
+        if not self.check_sanity():
+            exit(110)
+
     def cast_parameters(self):
         """
         Check if important variables have the right type and cast them
@@ -114,6 +117,21 @@ class gLinDAConfig:
         :return: the config
         """
         return self.config
+
+    def check_sanity(self):
+        if "password" not in self.config["P2P"] or self.config["P2P"]["password"] is None:
+            print("Config: Can not run without a common password.")
+            return False
+
+        if "peers" not in self.config["P2P"] or self.config["P2P"]["peers"] is None or len(self.config["P2P"]["peers"]) == 0:
+            print("Config: Missing peers. You can not run gLinDA only by yourself.")
+            return False
+
+        if "host" not in self.config["P2P"] or self.config["P2P"]["host"] is None:
+            print("Config: Missing host. You can not run gLinDA without finding or defining your own host address.")
+            return False
+
+        return True
 
     @staticmethod
     def _config_parser(config_file_path: str) -> dict:
