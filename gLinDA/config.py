@@ -13,7 +13,8 @@ class gLinDAConfig:
             "verbose":      0,
             "test":         None,
             "ignore_keys":  False,
-            "resolve_host": True
+            "resolve_host": True,
+            "asymmetric":   True,
         },
         "LINDA": {
             "covariant":    None
@@ -53,10 +54,8 @@ class gLinDAConfig:
         if type(self.config["P2P"]["verbose"]) is str:
             self.config["P2P"]["verbose"] = int(self.config["P2P"]["verbose"])
 
-        if (type(self.config["P2P"]["ignore_keys"]) is str and self.config["P2P"]["ignore_keys"] == "True" or
-                self.config["P2P"]["ignore_keys"] == "False"):
-            self.config["P2P"]["ignore_keys"] = True if self.config["P2P"]["ignore_keys"] == "True" else False
-            self.config["P2P"]["ignore_keys"] = True if self.config["P2P"]["ignore_keys"] == "1" else False
+        self.config["P2P"]["ignore_keys"] = self._cast_bool(self.config["P2P"]["ignore_keys"])
+        self.config["P2P"]["asymmetric"] = self._cast_bool(self.config["P2P"]["asymmetric"])
 
     def __resolve_host(self, include_own_host: bool = False) -> bool:
         """
@@ -132,6 +131,13 @@ class gLinDAConfig:
             return False
 
         return True
+
+    @staticmethod
+    def _cast_bool(value):
+        if type(value) is not str:
+            value = str(value)
+
+        return True if value == "True" or value == "1" else False
 
     @staticmethod
     def _config_parser(config_file_path: str) -> dict:

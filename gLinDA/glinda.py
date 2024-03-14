@@ -20,8 +20,8 @@ class gLinDAWrapper:
         print(broadcast)
 
         # Broadcast a dictionary as an object
-        #broadcast = self.__p2p.broadcast_obj({"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)})
-        #print(broadcast)
+        broadcast = self.__p2p.broadcast_obj({"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)})
+        print(broadcast)
 
 
 def main():

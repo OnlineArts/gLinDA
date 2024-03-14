@@ -1,4 +1,4 @@
-from p2p import P2P, gLinDAKeyring
+from p2p import P2P, gLinDAKeyring, EncryptionAsymmetric
 
 import random
 import socket
@@ -8,6 +8,8 @@ import time
 class gLinDAclient(P2P):
 
     def __init__(self, config: dict, keyring: gLinDAKeyring = None, initial: bool = False):
+        if keyring is None:
+            keyring = gLinDAKeyring()
         super().__init__(config, keyring)
 
         if initial:
@@ -30,6 +32,7 @@ class gLinDAclient(P2P):
                 key,
                 self.keyring.get_iv()
             )
+
             msg: bytes = bid + enc_payload + "END:".encode("utf8") + bid
 
             if self.verbose >= 2:
@@ -68,8 +71,12 @@ class gLinDAclient(P2P):
                         not_connected = False
                         random_number = random.randint(super().min_rand, super().max_rand)
 
-                        msg = self.encryption.encrypt(
-                            random_number.to_bytes(3, "big"),
+                        msg = random_number.to_bytes(3, "big")
+                        if self.config["asymmetric"]:
+                            msg += self.keyring.get_keys(False)[1] # public key
+
+                        enc_msg = self.encryption.encrypt(
+                            msg,
                             self.key,
                             self.keyring.get_iv()
                         )
@@ -77,7 +84,7 @@ class gLinDAclient(P2P):
                         if self.verbose >= 1:
                             print("Client: send random number %d" % random_number)
 
-                        s.sendall(msg)
+                        s.sendall(enc_msg)
 
                         data = s.recv(self.chunk_size)
 

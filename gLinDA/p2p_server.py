@@ -1,4 +1,4 @@
-from p2p import P2P, gLinDAKeyring
+from p2p import P2P, gLinDAKeyring, EncryptionAsymmetric
 
 import socket
 import random
@@ -7,6 +7,8 @@ import random
 class gLinDAserver(P2P):
 
     def __init__(self, config: dict, keyring: gLinDAKeyring = None, initial: bool = False, results: dict = {}):
+        if keyring is None:
+            keyring = gLinDAKeyring()
         super().__init__(config, keyring)
         self.__answers: dict = {}
         self.nr_clients: int = len(self.peers)
@@ -119,7 +121,11 @@ class gLinDAserver(P2P):
             else:
                 payload = data[self.bytes_len:]
 
-            key = self.keyring.for_reception(identifier)
+            if self.config["asymmetric"]:
+                key = self.keyring.get_keys(True)[0]
+            else:
+                key = self.keyring.for_reception(identifier)
+
             decrypted_payload: bytes = self.encryption.decrypt(
                 payload,
                 key,
@@ -149,6 +155,11 @@ class gLinDAserver(P2P):
             self.keyring.get_iv()
         )
 
+        rsa_key: bytes = bytes()
+        if self.config["asymmetric"] and len(data_decrypted) > self.bytes_len:
+            rsa_key = data_decrypted[3:]
+            data_decrypted = data_decrypted[:3]
+
         decrypted_number = int.from_bytes(data_decrypted, "big")
 
         if data_decrypted is None or not (super().min_rand <= decrypted_number <= super().max_rand):
@@ -162,13 +173,20 @@ class gLinDAserver(P2P):
 
         confirmation_number = decrypted_number + 1
 
-        new_key = self.encryption.get_key(str(confirmation_number + random.randint(super().min_rand,super().max_rand)), True)
-
-        self.keyring.add_peer(confirmation_number, new_key, True)
+        # RSA
+        if self.config["asymmetric"] and len(rsa_key):
+            new_key = self.keyring.get_keys(True)[1]
+            self.keyring.add_peer(confirmation_number, rsa_key)
+        # AES
+        else:
+            key_str = str(confirmation_number + random.randint(super().min_rand, super().max_rand))
+            new_key = self.encryption.get_key(key_str, self.verbose >= 2)
+            self.keyring.add_peer(confirmation_number, new_key, True)
 
         conn.sendall(self.encryption.encrypt(
             confirmation_number.to_bytes(super().bytes_len, "big") + new_key,
             self.key,
             self.keyring.get_iv()
         ))
+
         return True

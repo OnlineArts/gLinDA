@@ -1,8 +1,10 @@
 from pickle import loads, dumps
 from threading import Thread
 from copy import deepcopy
+
 from Crypto.Hash import MD5, SHA256, SHA512
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, PKCS1_OAEP
+from Crypto.PublicKey import RSA
 from Crypto.Util.Padding import pad, unpad
 
 """
@@ -17,6 +19,49 @@ __author__ = 'Roman Martin'
 __credits__ = 'Heinrich Heine University Duesseldorf'
 
 
+class gLinDAKeyring:
+
+    _peers: dict = {
+        "R": {},    # keys for receiving data
+        "S": {}     # keys for submitting data
+    }
+    _keys: dict = {
+        "S": (),
+        "C": ()
+    }
+    _iv = None
+
+    def __init__(self):
+        pass
+
+    def add_peer(self, identifier, aes_key: bytes, receiver: bool = True):
+        self._peers["R" if receiver else "S"].update({identifier: aes_key})
+
+    def get_peers(self):
+        return self._peers
+
+    def __len__(self):
+        return len(self._peers["R"].keys()) + len(self._peers["S"].keys())
+
+    def for_reception(self, id: int):
+        return self._peers["R"][id]
+
+    def for_submission(self, host: str) -> list:
+        return self._peers["S"][host]
+
+    def get_iv(self):
+        return self._iv
+
+    def set_iv(self, init_vector: bytes):
+        self._iv = init_vector
+
+    def set_keys(self, private: bytes, public: bytes, server: bool = True):
+        self._keys["S" if server else "C"] = (private, public)
+
+    def get_keys(self, server: bool = True) -> dict:
+        return self._keys["S" if server else "C"]
+
+
 class P2P:
 
     min_rand: int = 1000000
@@ -24,28 +69,36 @@ class P2P:
     bytes_len: int = 3
     waiting_time: int = 2
     chunk_size: int = 1024000
-    symmetric = True
+    symmetric = False
 
-    def __init__(self, config: dict, keyring: object = None):
+    def __init__(self, config: dict, keyring: gLinDAKeyring = None):
+        self.keyring = keyring
         self.config: dict = config
         self.verbose: int = self.config["verbose"]
         self.host: str = self.config["host"]
         self.peers: list = self.config["peers"]
         self.ignore_wrong_keys = self.config["ignore_keys"]
 
-        if self.symmetric:
-            self.encryption = EncryptionSymmetric()
-        else:
+        if "asymmetric" in self.config and self.config["asymmetric"]:
             self.encryption = EncryptionAsymmetric()
+        else:
+            self.encryption = EncryptionSymmetric()
 
-        if keyring is None:
-            self.keyring = gLinDAKeyring()
+        if not len(keyring):
+            # Create asymmetric keys
+            if self.config["asymmetric"]:
+                private_key, public_key = EncryptionAsymmetric().get_key(verbose=self.verbose >= 1)
+                self.keyring.set_keys(private_key, public_key, True)
+                private_key, public_key = EncryptionAsymmetric().get_key(verbose=self.verbose >= 1)
+                self.keyring.set_keys(private_key, public_key, False)
+
+            # initially symmetric encryption
+            self.encryption = EncryptionSymmetric()
+
             self.key = self.encryption.get_key(self.config["password"], self.verbose >= 2)
             # Only for symmetric encryption required
             if isinstance(self.encryption, EncryptionSymmetric):
                 self.keyring.set_iv(self.encryption.get_iv(self.config, self.verbose >= 2))
-        else:
-            self.keyring = keyring
 
 
 class EncryptionSymmetric:
@@ -133,20 +186,25 @@ class EncryptionSymmetric:
 class EncryptionAsymmetric:
 
     @staticmethod
-    def encrypt(data: bytes, aes_key: bytes, init_vector: bytes) -> bytes:
-        pass
+    def encrypt(data: bytes, public_key: bytes, init_vector: bytes = None) -> bytes:
+        recipient_key = RSA.importKey(public_key)
+        cipher_rsa = PKCS1_OAEP.new(recipient_key)
+        encrypted_msg = cipher_rsa.encrypt(data)
+        return encrypted_msg
 
     @staticmethod
-    def decrypt(ciper: bytes, aes_key: bytes, init_vector: bytes, ignore_wrong_keys: bool = True) -> bytes:
-        pass
+    def decrypt(cipher: bytes, private_key: bytes, init_vector: bytes = None, ignore_wrong_keys: bool = True) -> bytes:
+        private_key = RSA.importKey(private_key)
+        ciper_rsa = PKCS1_OAEP.new(private_key)
+        msg = ciper_rsa.decrypt(cipher)
+        return msg
 
     @staticmethod
-    def get_key(password: str, verbose: bool = True, iterations: int = 100000, skip_iterations: bool = False):
-        pass
-
-    @staticmethod
-    def get_iv(config: dict, verbose: bool = True):
-        pass
+    def get_key(bits: int = 1024, verbose: bool = True) -> tuple:
+        key = RSA.generate(bits)
+        if verbose:
+            print("EncryptionAsymmetric: Create public and private RSA keys")
+        return key.export_key(), key.public_key().export_key()
 
 
 class gLinDAP2Prunner:
@@ -230,10 +288,12 @@ class gLinDAP2Prunner:
         Manages the handshake and errors; analyses the constructed keyring.
         """
         if "test" in self.config is not None and self.config["test"] == 'server':
-            self.run_server(True)
+            server = self.run_server(True)
+            print( server.keyring.get_peers() )
             exit(0)
         elif "test" in self.config is not None and self.config["test"] == 'client':
-            self.run_client(True)
+            client = self.run_client(True)
+            print( client.keyring.get_peers() )
             exit(0)
         else:
             keyring = self.__initialize_handshake()
@@ -277,40 +337,6 @@ class gLinDAP2Prunner:
         from p2p_client import gLinDAclient
         client = gLinDAclient(self.config, self.keyring, initial)
         return client
-
-
-class gLinDAKeyring:
-
-    _peers: dict = {
-        "R": {},    # keys for receiving data
-        "S": {}     # keys for submitting data
-    }
-    _iv = None
-
-    def __init__(self):
-        pass
-
-    def add_peer(self, identifier, aes_key: bytes, receiver: bool = True):
-        self._peers["R" if receiver else "S"].update({identifier: aes_key})
-
-    def get_peers(self):
-        return self._peers
-
-    def __len__(self):
-        return len(self._peers["R"].keys()) + len(self._peers["S"].keys())
-
-    def for_reception(self, id: int):
-        return self._peers["R"][id]
-
-    def for_submission(self, host: str) -> list:
-        return self._peers["S"][host]
-
-    def get_iv(self):
-        return self._iv
-
-    def set_iv(self, init_vector: bytes):
-        self._iv = init_vector
-
 
 class P2PPackage:
     
