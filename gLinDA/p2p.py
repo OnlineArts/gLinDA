@@ -19,20 +19,28 @@ __author__ = 'Roman Martin'
 __credits__ = 'Heinrich Heine University Duesseldorf'
 
 
-class gLinDAKeyring:
+class Keyring:
 
+    # general bucket
     _peers: dict = {
         "R": {},    # keys for receiving data
         "S": {}     # keys for submitting data
     }
+
+    # only required for RSA encryption
     _keys: dict = {
         "S": (),
         "C": ()
     }
+
+    # only required for AES encryption
     _iv = None
 
     def __init__(self):
         pass
+
+    def __len__(self):
+        return len(self._peers["R"].keys()) + len(self._peers["S"].keys())
 
     def add_peer(self, identifier, aes_key: bytes, receiver: bool = True):
         self._peers["R" if receiver else "S"].update({identifier: aes_key})
@@ -40,11 +48,8 @@ class gLinDAKeyring:
     def get_peers(self):
         return self._peers
 
-    def __len__(self):
-        return len(self._peers["R"].keys()) + len(self._peers["S"].keys())
-
-    def for_reception(self, id: int):
-        return self._peers["R"][id]
+    def for_reception(self, identifier: int):
+        return self._peers["R"][identifier]
 
     def for_submission(self, host: str) -> list:
         return self._peers["S"][host]
@@ -55,10 +60,10 @@ class gLinDAKeyring:
     def set_iv(self, init_vector: bytes):
         self._iv = init_vector
 
-    def set_keys(self, private: bytes, public: bytes, server: bool = True):
-        self._keys["S" if server else "C"] = (private, public)
+    def set_keys(self, keys: tuple, server: bool = True):
+        self._keys["S" if server else "C"] = keys
 
-    def get_keys(self, server: bool = True) -> dict:
+    def get_keys(self, server: bool = True) -> tuple:
         return self._keys["S" if server else "C"]
 
 
@@ -71,66 +76,65 @@ class P2P:
     chunk_size: int = 1024000
     symmetric = False
 
-    def __init__(self, config: dict, keyring: gLinDAKeyring = None):
+    def __init__(self, config: dict, keyring: Keyring = None):
         self.keyring = keyring
         self.config: dict = config
         self.verbose: int = self.config["verbose"]
         self.host: str = self.config["host"]
         self.peers: list = self.config["peers"]
-        self.ignore_wrong_keys = self.config["ignore_keys"]
-
-        if "asymmetric" in self.config and self.config["asymmetric"]:
-            self.encryption = EncryptionAsymmetric()
-        else:
-            self.encryption = EncryptionSymmetric()
+        self.encryption = EncryptionAsymmetric() if self.config["asymmetric"] else EncryptionSymmetric(self.config)
 
         if not len(keyring):
             # Create asymmetric keys
             if self.config["asymmetric"]:
-                private_key, public_key = EncryptionAsymmetric().get_key(verbose=self.verbose >= 1)
-                self.keyring.set_keys(private_key, public_key, True)
-                private_key, public_key = EncryptionAsymmetric().get_key(verbose=self.verbose >= 1)
-                self.keyring.set_keys(private_key, public_key, False)
+                self.keyring.set_keys(EncryptionAsymmetric().get_key(verbose=self.verbose >= 1), True)
+                self.keyring.set_keys(EncryptionAsymmetric().get_key(verbose=self.verbose >= 1), False)
 
             # initially symmetric encryption
-            self.encryption = EncryptionSymmetric()
-
-            self.key = self.encryption.get_key(self.config["password"], self.verbose >= 2)
-            # Only for symmetric encryption required
-            if isinstance(self.encryption, EncryptionSymmetric):
-                self.keyring.set_iv(self.encryption.get_iv(self.config, self.verbose >= 2))
+            self.encryption = EncryptionSymmetric(self.config)
+            self.key = self.encryption.get_key(self.config["password"])
+            initialization_vector: bytes = self.encryption.get_iv()
+            self.encryption.set_init_vector(initialization_vector)
+            self.keyring.set_iv(initialization_vector)
 
 
 class EncryptionSymmetric:
 
-    @staticmethod
-    def encrypt(data: bytes, aes_key: bytes, init_vector: bytes) -> bytes:
+    _init_vector: bytes = bytes
+    _iterations: int = 100000
+
+    def __init__(self, config: dict):
+        self.config = config
+
+    def set_init_vector(self, vector: bytes):
+        self._init_vector = vector
+
+    def encrypt(self, data: bytes, aes_key: bytes) -> bytes:
         """
         Encrypts and pads raw bytes data into a cipher.
         :param data: the raw data
         :param aes_key: optionally, an alternative AES key
         :return: the cipher
         """
-        cipher = AES.new(aes_key, AES.MODE_CBC, iv=init_vector)
+        cipher = AES.new(aes_key, AES.MODE_CBC, iv=self._init_vector)
         cipher_text = cipher.encrypt(pad(data, AES.block_size))
         return cipher_text
 
-    @staticmethod
-    def decrypt(ciper: bytes, aes_key: bytes, init_vector: bytes, ignore_wrong_keys: bool = True) -> bytes:
+    def decrypt(self, ciper: bytes, aes_key: bytes) -> bytes:
         """
         Decrypts and unpads a ciper to raw data
         :param ciper: the cipher
         :param aes_key: optionally, an alternative AES key
         :return: the raw data
         """
-        decrypt_cipher = AES.new(aes_key, AES.MODE_CBC, init_vector)
+        decrypt_cipher = AES.new(aes_key, AES.MODE_CBC, self._init_vector)
         data = decrypt_cipher.decrypt(ciper)
         unpadded = None
         try:
             unpadded = unpad(data, AES.block_size)
         except ValueError as ex:
             print("Crypto: Padding failed, probably wrong key?")
-            if not ignore_wrong_keys:
+            if not self.config["ignore_keys"]:
                 exit(201)
         except Exception as ex:
             import traceback
@@ -139,46 +143,43 @@ class EncryptionSymmetric:
             exit(200)
         return unpadded
 
-    @staticmethod
-    def get_key(password: str, verbose: bool = True, iterations: int = 100000, skip_iterations: bool = False):
+    def get_key(self, password: str, skip_iterations: bool = False):
         """
         Generates from the password (over single or multiple iterations of hashing) an AES key.
         :param password: the shared password
         :param skip_iterations: if True, performs n iterations of hashing
         :return: the AES key
         """
-        hash = SHA512.new()
-        hash.update(bytes(password, encoding='utf8'))
+        sha_hash = SHA512.new()
+        sha_hash.update(bytes(password, encoding='utf8'))
         if not skip_iterations:
-            if verbose:
-                print("EncryptionSymmetric: Start SHA512 transformations iterations %d" % iterations)
-            for i in range(0, iterations):
-                hash.update(hash.digest())
-        aes_key = SHA256.new(hash.digest()).digest()
+            if self.config["verbose"] >= 2:
+                print("EncryptionSymmetric #2: Start SHA512 transformations iterations %d" % self._iterations)
+            for i in range(0, self._iterations):
+                sha_hash.update(sha_hash.digest())
+        aes_key = SHA256.new(sha_hash.digest()).digest()
 
-        if verbose:
-            print("EncryptionSymmetric: new AES key: %s" % aes_key)
+        if self.config["verbose"] >= 2:
+            print("EncryptionSymmetric #1: new AES key: %s" % aes_key)
 
         return aes_key
 
-    @staticmethod
-    def get_iv(config: dict, verbose: bool = True):
+    def get_iv(self):
         """
         Creates an initialization vector for the AES CBC mode
         The vector have to be the same for each peer, therefore it
         will be generated from the list of all involved host
-        :param args: all arguments
         :return:
         """
-        addresses: list = deepcopy(config["peers"])
-        addresses.append(config["host"])
+        addresses: list = deepcopy(self.config["peers"])
+        addresses.append(self.config["host"])
         addresses.sort()
 
         # put the list into an MD5 hash to achieve the right byte size.
         iv = MD5.new(bytes(str(addresses), encoding='utf8')).digest()
 
-        if verbose:
-            print("EncryptionSymmetric: Initialization vector: %s" % iv)
+        if self.config["verbose"] >= 2:
+            print("EncryptionSymmetric #2: Initialization vector: %s" % iv)
 
         return iv
 
@@ -186,14 +187,14 @@ class EncryptionSymmetric:
 class EncryptionAsymmetric:
 
     @staticmethod
-    def encrypt(data: bytes, public_key: bytes, init_vector: bytes = None) -> bytes:
+    def encrypt(data: bytes, public_key: bytes) -> bytes:
         recipient_key = RSA.importKey(public_key)
         cipher_rsa = PKCS1_OAEP.new(recipient_key)
         encrypted_msg = cipher_rsa.encrypt(data)
         return encrypted_msg
 
     @staticmethod
-    def decrypt(cipher: bytes, private_key: bytes, init_vector: bytes = None, ignore_wrong_keys: bool = True) -> bytes:
+    def decrypt(cipher: bytes, private_key: bytes) -> bytes:
         private_key = RSA.importKey(private_key)
         ciper_rsa = PKCS1_OAEP.new(private_key)
         msg = ciper_rsa.decrypt(cipher)
@@ -207,7 +208,7 @@ class EncryptionAsymmetric:
         return key.export_key(), key.public_key().export_key()
 
 
-class gLinDAP2Prunner:
+class Runner:
 
     keyring: object = None
 
@@ -325,8 +326,8 @@ class gLinDAP2Prunner:
         Loads the P2P Server class, that is listening.
         :return: the server class object
         """
-        from p2p_server import gLinDAserver
-        server = gLinDAserver(self.config, self.keyring, initial, results)
+        from p2p_server import Server
+        server = Server(self.config, self.keyring, initial, results)
         return server
 
     def run_client(self, initial: bool = False):
@@ -334,9 +335,10 @@ class gLinDAP2Prunner:
         Loads the P2P Client class, that submits data.
         :return: the client class object
         """
-        from p2p_client import gLinDAclient
-        client = gLinDAclient(self.config, self.keyring, initial)
+        from p2p_client import Client
+        client = Client(self.config, self.keyring, initial)
         return client
+
 
 class P2PPackage:
     

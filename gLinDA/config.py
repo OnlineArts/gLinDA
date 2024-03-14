@@ -3,7 +3,7 @@ import argparse
 import os
 
 
-class gLinDAConfig:
+class Config:
 
     config: dict = {
         "P2P": {

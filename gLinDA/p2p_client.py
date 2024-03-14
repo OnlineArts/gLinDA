@@ -1,15 +1,15 @@
-from p2p import P2P, gLinDAKeyring, EncryptionAsymmetric
+from p2p import P2P, Keyring
 
 import random
 import socket
 import time
 
 
-class gLinDAclient(P2P):
+class Client(P2P):
 
-    def __init__(self, config: dict, keyring: gLinDAKeyring = None, initial: bool = False):
+    def __init__(self, config: dict, keyring: Keyring = None, initial: bool = False):
         if keyring is None:
-            keyring = gLinDAKeyring()
+            keyring = Keyring()
         super().__init__(config, keyring)
 
         if initial:
@@ -24,20 +24,19 @@ class gLinDAclient(P2P):
             not_connected = True
             chunk_nr: int = 0
 
-            id, key = self.keyring.for_submission(peer)
-            bid: bytes = int(id).to_bytes(self.bytes_len, "big")
+            identifier, key = self.keyring.for_submission(peer)
+            bid: bytes = int(identifier).to_bytes(self.bytes_len, "big")
 
-            enc_payload = self.encryption.encrypt(
-                raw_payload,
-                key,
-                self.keyring.get_iv()
-            )
+            if not self.config["asymmetric"]:
+                self.encryption.set_init_vector(self.keyring.get_iv())
+
+            enc_payload = self.encryption.encrypt(raw_payload, key)
 
             msg: bytes = bid + enc_payload + "END:".encode("utf8") + bid
 
             if self.verbose >= 2:
                 print("Client #2: raw Massage: %s" % raw_payload)
-                print("Client #2: target id %d, key %s" % (id, key))
+                print("Client #2: target id %d, key %s" % (identifier, key))
                 print("Client #2: byte identifier %s" % bid)
                 print("Client #2: ciper %s" % enc_payload)
                 print("Client #2: send %s" % msg)
@@ -77,8 +76,7 @@ class gLinDAclient(P2P):
 
                         enc_msg = self.encryption.encrypt(
                             msg,
-                            self.key,
-                            self.keyring.get_iv()
+                            self.key
                         )
 
                         if self.verbose >= 1:
@@ -90,8 +88,7 @@ class gLinDAclient(P2P):
 
                         answer = self.encryption.decrypt(
                             data,
-                            self.key,
-                            self.keyring.get_iv()
+                            self.key
                         )
 
                         confirmation_number = int.from_bytes(answer[:super().bytes_len], "big")

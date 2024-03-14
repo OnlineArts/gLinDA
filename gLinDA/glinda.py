@@ -1,27 +1,34 @@
 #!/bin/env python3
-from config import gLinDAConfig
-from p2p import gLinDAP2Prunner
+from config import Config
+from p2p import Runner
 
 from argparse import ArgumentParser
 
 
-class gLinDAWrapper:
+class Wrapper:
 
     def __init__(self, arguments: ArgumentParser):
-        self.config = gLinDAConfig(arguments).get()
-        self.__p2p = gLinDAP2Prunner(self.config["P2P"])
+        self.config = Config(arguments).get()
+        self.__p2p = Runner(self.config["P2P"])
+
+        # Ready to use from here
+        # Everything else including handshaking and encryption is already ready
         self._example_workflow()
 
     def _example_workflow(self):
         import random
 
         # Broadcast a string
-        broadcast = self.__p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
-        print(broadcast)
+        my_msg: str = "Test Message: %s" % random.randint(10, 99)
+        broadcast = self.__p2p.broadcast_str(my_msg)
+        print("My message: %s" % my_msg)
+        print("Received messages: %s" % broadcast)
 
         # Broadcast a dictionary as an object
-        broadcast = self.__p2p.broadcast_obj({"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)})
-        print(broadcast)
+        my_dictionary: dict = {"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)}
+        broadcast = self.__p2p.broadcast_obj(my_dictionary)
+        print("My dictionary: %s" % my_dictionary)
+        print("Received messages: %s" % broadcast)
 
 
 def main():
@@ -42,7 +49,7 @@ def main():
     parser.add_argument("--config", type=str, help="path to config file")
 
     args = parser.parse_args()
-    gLinDAWrapper(args)
+    Wrapper(args)
 
 
 if __name__ == "__main__":

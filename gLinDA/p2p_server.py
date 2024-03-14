@@ -1,14 +1,14 @@
-from p2p import P2P, gLinDAKeyring, EncryptionAsymmetric
+from p2p import P2P, Keyring
 
 import socket
 import random
 
 
-class gLinDAserver(P2P):
+class Server(P2P):
 
-    def __init__(self, config: dict, keyring: gLinDAKeyring = None, initial: bool = False, results: dict = {}):
+    def __init__(self, config: dict, keyring: Keyring = None, initial: bool = False, results: dict = {}):
         if keyring is None:
-            keyring = gLinDAKeyring()
+            keyring = Keyring()
         super().__init__(config, keyring)
         self.__answers: dict = {}
         self.nr_clients: int = len(self.peers)
@@ -124,13 +124,14 @@ class gLinDAserver(P2P):
             if self.config["asymmetric"]:
                 key = self.keyring.get_keys(True)[0]
             else:
+                self.encryption.set_init_vector(self.keyring.get_iv())
                 key = self.keyring.for_reception(identifier)
 
             decrypted_payload: bytes = self.encryption.decrypt(
                 payload,
-                key,
-                self.keyring.get_iv()
+                key
             )
+
             cache += decrypted_payload
 
             if self.verbose >= 2:
@@ -151,8 +152,7 @@ class gLinDAserver(P2P):
 
         data_decrypted = self.encryption.decrypt(
             data,
-            self.key,
-            self.keyring.get_iv()
+            self.key
         )
 
         rsa_key: bytes = bytes()
@@ -184,9 +184,7 @@ class gLinDAserver(P2P):
             self.keyring.add_peer(confirmation_number, new_key, True)
 
         conn.sendall(self.encryption.encrypt(
-            confirmation_number.to_bytes(super().bytes_len, "big") + new_key,
-            self.key,
-            self.keyring.get_iv()
+            confirmation_number.to_bytes(super().bytes_len, "big") + new_key, self.key
         ))
 
         return True
