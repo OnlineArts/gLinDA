@@ -4,6 +4,10 @@ import os
 
 
 class Config:
+    """
+    Conserves all configuration values
+    (GUI) > Arguments > Configuration file
+    """
 
     config: dict = {
         "P2P": {
@@ -74,7 +78,10 @@ class Config:
                 print(e)
             return False
 
-        all_hosts: list = self.config["P2P"]["peers"] + self.config["P2P"]["host"] if include_own_host else self.config["P2P"]["peers"]
+        if include_own_host:
+            all_hosts: list = self.config["P2P"]["peers"] + self.config["P2P"]["host"]
+        else:
+            all_hosts: list = self.config["P2P"]["peers"]
         matches: list = []
 
         for host_port in all_hosts:
@@ -88,7 +95,8 @@ class Config:
                 print("Config #2: Ambiguous IP detection, stop IP resolution.")
         elif len(matches) == 0:
             if self.config["P2P"]["verbose"] >= 1:
-                print("Config #1: No possible fitting host identified: %s in %s" % ([h.split(":")[0] for h in all_hosts], [ip[1] for ip in ips]))
+                print("Config #1: No possible fitting host identified: %s in %s" %
+                      ([h.split(":")[0] for h in all_hosts], [ip[1] for ip in ips]))
         elif len(matches) == 1:
             if self.config["P2P"]["verbose"] >= 1:
                 print("Config #1: Identified %s as the host address" % matches[0])
@@ -118,6 +126,9 @@ class Config:
         return self.config
 
     def check_sanity(self):
+        """
+        Check if basic requirements are fulfilled
+        """
         if "password" not in self.config["P2P"] or self.config["P2P"]["password"] is None:
             print("Config: Can not run without a common password.")
             return False
@@ -134,6 +145,11 @@ class Config:
 
     @staticmethod
     def _cast_bool(value):
+        """
+        Cast a (string) value (True, False, 1, 0) to a boolean
+        :param value: the value
+        :return: a boolean
+        """
         if type(value) is not str:
             value = str(value)
 

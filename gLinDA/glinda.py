@@ -6,16 +6,21 @@ from argparse import ArgumentParser
 
 
 class Wrapper:
+    """
+    Basic wrapper that should initialize the LinDA call and the P2P network.
+    """
 
     def __init__(self, arguments: ArgumentParser):
         self.config = Config(arguments).get()
         self.__p2p = Runner(self.config["P2P"])
 
         # Ready to use from here
-        # Everything else including handshaking and encryption is already ready
         self._example_workflow()
 
     def _example_workflow(self):
+        """
+        A minimal example demonstrating how to send and receive values
+        """
         import random
 
         # Broadcast a string
@@ -25,10 +30,10 @@ class Wrapper:
         print("Received messages: %s" % broadcast)
 
         # Broadcast a dictionary as an object
-        my_dictionary: dict = {"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)}
-        broadcast = self.__p2p.broadcast_obj(my_dictionary)
-        print("My dictionary: %s" % my_dictionary)
-        print("Received messages: %s" % broadcast)
+        #my_dictionary: dict = {"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)}
+        #broadcast = self.__p2p.broadcast_obj(my_dictionary)
+        #print("My dictionary: %s" % my_dictionary)
+        #print("Received messages: %s" % broadcast)
 
 
 def main():

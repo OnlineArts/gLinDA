@@ -342,12 +342,75 @@ class Runner:
 
 class P2PPackage:
     
-    header: bytes = bytes()
+    identifier: int = 0
     msg: bytes = bytes()
-    stop: bytes = bytes()
+    msg_enc: bool = False
+    stop: bool = False
 
-    def load(self):
-        pass
+    def __init__(self, identifier_length: int = 3, verbose: int = 0):
+        self.bytes_len = identifier_length
+        self.verbose = verbose
 
-    def get(self):
-        pass
+    def load(self, raw_data: bytes) -> bool:
+        # Detect the identifier
+        self.identifier = self.__get_identifier(raw_data[:self.bytes_len])
+        if self.identifier == 0:
+            return False
+
+        # Detect a potential break
+        self.stop = self.__get_break(self.identifier, raw_data[-(4 + self.bytes_len):])
+        if self.stop:
+            self.msg += raw_data[self.bytes_len:-(4 + self.bytes_len)]
+        else:
+            self.msg += raw_data[self.bytes_len:]
+        self.msg_enc = True
+
+        return True
+
+    def __get_identifier(self, data: bytes) -> int:
+        """
+        Identify a putative id from the message.
+        :param data: the message header
+        :return: an identifier as an integer
+        """
+        if self.verbose >= 3:
+            print("Server #3: potential binary identifier %s" % data)
+
+        try:
+            identifier = int.from_bytes(data, "big")
+        except TypeError:
+            return 0
+
+        if self.verbose >= 3:
+            print("Server #3: identifier %d" % identifier)
+
+        return identifier
+
+    def __get_break(self, identifier: int, potential_brake: bytes) -> bool:
+        """
+        Check whether the message is finished
+        :param identifier: the expect identifier
+        :param potential_brake: the tail of a message
+        :return: True if message treminates
+        """
+        end, endid = None, None
+        try:
+            end = potential_brake[:4].decode("utf8")
+            endid = int.from_bytes(potential_brake[-self.bytes_len:], "big")
+
+            if self.verbose >= 3:
+                print("Server #3: expected identifier %d" % identifier)
+                print("Server #3: potential end %s" % potential_brake)
+                print("Server #3: end '%s'" % end)
+                print("Server #3: endid '%d'" % endid)
+
+        except UnicodeDecodeError as e:
+            print(e)
+            return False
+        except Exception as e:
+            print(e)
+            return False
+        return (end is not None and endid is not None) and (end == "END:" and endid == identifier)
+
+    def __repr__(self):
+        return "Identifier %d, Finished %d, Message %s" % (self.identifier, int(self.stop), self.msg)

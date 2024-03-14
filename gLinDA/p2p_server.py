@@ -1,4 +1,4 @@
-from p2p import P2P, Keyring
+from p2p import P2P, Keyring, P2PPackage
 
 import socket
 import random
@@ -24,9 +24,20 @@ class Server(P2P):
             results.update(self.__answers)
 
     def get_answers(self) -> dict:
+        """
+        Returns the messages from all participants
+        :return: the messages
+        """
         return self.__answers
 
     def __await_responses(self, host: str, bucket, func: object):
+        """
+        Basic backbone for the host connection
+        :param host: the own host address
+        :param bucket: a bucket functions as a cache
+        :param func: an object function, that will be executed inside as a first outer loop
+        :return:
+        """
         if self.verbose >= 2:
             print('Starting server on %s' % host)
         host, port = host.split(":")
@@ -50,6 +61,13 @@ class Server(P2P):
                 print(e)
 
     def __inner_loop(self, s: socket.socket, bucket, func):
+        """
+        The inner function to execute in the outer loop.
+        :param s: the socket connection
+        :param bucket: a bucket functions as a cache
+        :param func: an object function, that will be executed inside as a first outer loop
+        :return:
+        """
         conn, addr = s.accept()
         with conn:
             if self.verbose >= 1:
@@ -66,82 +84,38 @@ class Server(P2P):
 
             return True
 
-    def __get_identifier(self, data: bytes) -> int:
+    def __reception(self, conn, addr, bucket) -> bool:
+        """
+        An inner function that manages incoming messages.
+        :param conn: the established socket to host connection
+        :param addr: the users address
+        :param bucket: a variable cache
+        :return: True after termination
+        """
+        cache: P2PPackage = P2PPackage(self.bytes_len, self.verbose)
 
-        if self.verbose >= 3:
-            print("Server #3: potential binary identifier %s" % data)
-
-        try:
-            identifier = int.from_bytes(data, "big")
-        except TypeError:
-            return 0
-
-        if self.verbose >= 3:
-            print("Server #3: identifier %d" % identifier)
-
-        return identifier
-
-    def __get_break(self, identifier: int, potential_brake: bytes) -> bool:
-        end, endid = None, None
-        try:
-            end = potential_brake[:4].decode("utf8")
-            endid = int.from_bytes(potential_brake[-self.bytes_len:], "big")
-
-            if self.verbose >= 3:
-                print("Server #3: expected identifier %d" % identifier)
-                print("Server #3: potential end %s" % potential_brake)
-                print("Server #3: end '%s'" % end)
-                print("Server #3: endid '%d'" % endid)
-
-        except UnicodeDecodeError as e:
-            print(e)
-            return False
-        except Exception as e:
-            print(e)
-            return False
-        return (end is not None and endid is not None) and (end == "END:" and endid == identifier)
-
-    def __reception(self, conn, addr, bucket):
-        finish: bool = False
-        cache: bytes = bytes()
-
-        while not finish:
+        while not cache.stop:
             data = conn.recv(self.chunk_size)
             if not data:
                 return False
 
-            identifier = self.__get_identifier(data[:self.bytes_len])
             if self.verbose >= 2:
                 print("Server: Got %s" % data)
-            end_of_sub = self.__get_break(identifier, data[-(4+self.bytes_len):])
 
-            if end_of_sub:
-                payload = data[self.bytes_len:-(4 + self.bytes_len)]
-                finish = True
-            else:
-                payload = data[self.bytes_len:]
+            cache.load(data)
 
-            if self.config["asymmetric"]:
-                key = self.keyring.get_keys(True)[0]
-            else:
-                self.encryption.set_init_vector(self.keyring.get_iv())
-                key = self.keyring.for_reception(identifier)
+            if cache.stop:
+                if self.config["asymmetric"]:
+                    key = self.keyring.get_keys(True)[0]
+                else:
+                    self.encryption.set_init_vector(self.keyring.get_iv())
+                    key = self.keyring.for_reception(cache.identifier)
 
-            decrypted_payload: bytes = self.encryption.decrypt(
-                payload,
-                key
-            )
+                cache.msg = self.encryption.decrypt(cache.msg, key)
+                bucket.update({cache.msg: cache.msg})
 
-            cache += decrypted_payload
-
-            if self.verbose >= 2:
-                print("Server #2: Used key %s" % key)
-                print("Server #2: Decrypted data %s" % decrypted_payload)
-
-            if finish:
                 if self.verbose >= 2:
-                    print("Server #2: End of submission confirmed")
-                bucket.update({identifier: cache})
+                    print("Server #2: Used key %s" % key)
 
         return True
 
