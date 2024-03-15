@@ -26,16 +26,25 @@ class Config:
     }
     ip_filter: list = ["localhost", "127.0.0.1", "::1"]
 
-    def __init__(self, arguments: argparse.ArgumentParser):
-        config_path = arguments.config
+    def __init__(self, arguments: argparse.ArgumentParser = None, ini_path: str = None, check_sanity: bool = True):
+        if arguments is None and ini_path is None:
+            print("Use default configuration only")
+
+        if arguments is not None:
+            config_path = arguments.config
+        elif ini_path is not None:
+            config_path = ini_path
+        else:
+            config_path = None
 
         # Reading in arguments
         if config_path is not None and os.path.exists(config_path):
             configs = self._config_parser(config_path)
             self.config = self.merge_dictionary(self.config, configs)
 
-        arg_filtered = self._argument_parser(arguments)
-        self.config = self.merge_dictionary(self.config, arg_filtered)
+        if arguments is not None:
+            arg_filtered = self._argument_parser(arguments)
+            self.config = self.merge_dictionary(self.config, arg_filtered)
 
         self.cast_parameters()
         if self.config["P2P"]["resolve_host"] and self.config["P2P"]["resolve_host"] is None:
@@ -45,7 +54,7 @@ class Config:
             print("Config #1: Initial configuration defined:")
             print(self.config)
 
-        if not self.check_sanity():
+        if check_sanity and not self.check_sanity():
             exit(110)
 
     def cast_parameters(self):
@@ -129,19 +138,43 @@ class Config:
         """
         Check if basic requirements are fulfilled
         """
-        if "password" not in self.config["P2P"] or self.config["P2P"]["password"] is None:
+        if "password" not in self.config["P2P"] or self.config["P2P"]["password"] is None or len(self.config["P2P"]["password"]) == 0:
             print("Config: Can not run without a common password.")
             return False
 
         if "peers" not in self.config["P2P"] or self.config["P2P"]["peers"] is None or len(self.config["P2P"]["peers"]) == 0:
             print("Config: Missing peers. You can not run gLinDA only by yourself.")
             return False
+        elif type(self.config["P2P"]["peers"]) is not list:
+            print("Config: Expecting a list of peers")
+            return False
+        else:
+            for peer in self.config["P2P"]["peers"]:
+                if not self._is_ip_and_port(peer):
+                    return False
 
-        if "host" not in self.config["P2P"] or self.config["P2P"]["host"] is None:
+        if "host" not in self.config["P2P"] or self.config["P2P"]["host"] is None or len(self.config["P2P"]["host"]) == 0:
             print("Config: Missing host. You can not run gLinDA without finding or defining your own host address.")
+            return False
+        elif not self._is_ip_and_port(self.config["P2P"]["host"]):
+            print("Config: Host is not correctly formatted, expected IP:Port")
             return False
 
         return True
+
+    def save_config_to_file(self, path: str):
+        print("Saving here:")
+        print(path)
+
+    @staticmethod
+    def _is_ip_and_port(value: str) -> bool:
+        if ":" in value:
+            ip = value[:value.rfind(":")]
+            port = value[value.rfind(":")+1:]
+            if len(ip) and len(port) and port.isnumeric():
+                return True
+
+        return False
 
     @staticmethod
     def _cast_bool(value):
