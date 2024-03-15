@@ -18,7 +18,7 @@ class Config:
             "test":         None,
             "ignore_keys":  False,
             "resolve_host": True,
-            "asymmetric":   True,
+            "asymmetric":   False,
         },
         "LINDA": {
             "covariant":    None

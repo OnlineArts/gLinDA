@@ -72,7 +72,7 @@ class P2P:
     min_rand: int = 1000000
     max_rand: int = 9999999
     bytes_len: int = 3
-    waiting_time: int = 2
+    waiting_time: int = 3
     chunk_size: int = 1024000
     symmetric = False
 

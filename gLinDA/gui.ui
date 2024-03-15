@@ -54,17 +54,21 @@
         <x>10</x>
         <y>10</y>
         <width>241</width>
-        <height>276</height>
+        <height>281</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="ConfigP2PLayout">
+       <property name="sizeConstraint">
+        <enum>QLayout::SetDefaultConstraint</enum>
+       </property>
        <item>
         <widget class="QLabel" name="P2PLabel">
          <property name="font">
           <font>
-           <pointsize>12</pointsize>
+           <pointsize>13</pointsize>
            <weight>75</weight>
            <bold>true</bold>
+           <kerning>true</kerning>
           </font>
          </property>
          <property name="text">
@@ -125,17 +129,24 @@
         <x>260</x>
         <y>10</y>
         <width>241</width>
-        <height>75</height>
+        <height>281</height>
        </rect>
       </property>
-      <layout class="QVBoxLayout" name="ConfigLINDALayout">
+      <layout class="QVBoxLayout" name="ConfigLINDALayout" stretch="0,1,0">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <property name="sizeConstraint">
+        <enum>QLayout::SetDefaultConstraint</enum>
+       </property>
        <item>
         <widget class="QLabel" name="LindaLabel">
          <property name="font">
           <font>
-           <pointsize>12</pointsize>
+           <pointsize>13</pointsize>
            <weight>75</weight>
            <bold>true</bold>
+           <kerning>true</kerning>
           </font>
          </property>
          <property name="text">
@@ -169,6 +180,16 @@
      <attribute name="title">
       <string>Results</string>
      </attribute>
+     <widget class="QTextBrowser" name="ResultLabel">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>10</y>
+        <width>761</width>
+        <height>451</height>
+       </rect>
+      </property>
+     </widget>
     </widget>
    </widget>
    <widget class="QWidget" name="horizontalLayoutWidget">

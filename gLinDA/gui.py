@@ -1,5 +1,8 @@
+import time
+
 from config import Config
-from PyQt6 import QtWidgets, uic
+from p2p import Runner
+from PyQt6 import QtWidgets, QtCore, uic
 
 import sys
 
@@ -22,13 +25,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.password_field: QtWidgets.QLineEdit = self.PasswordInput
         self.covariant: QtWidgets.QLineEdit = self.CovariantInput
 
-        self.Message: QtWidgets.QLabel = self.MessageLabel
-        self.Progress: QtWidgets.QProgressBar = self.ProgressBar
-        self.Run: QtWidgets.QPushButton = self.RunButton
+        self.Open: QtWidgets.QWidgetAction = self.actionOpenConfig
         self.Save: QtWidgets.QWidgetAction = self.actionSaveConfig
         self.Export: QtWidgets.QWidgetAction = self.actionExportConfig
 
-        self.MessageLabel.setText("")
+        self.Message: QtWidgets.QLabel = self.MessageLabel
+        self.Progress: QtWidgets.QProgressBar = self.ProgressBar
+        self.Run: QtWidgets.QPushButton = self.RunButton
+        self.ResultText: QtWidgets.QTextBrowser = self.ResultLabel
+
+        self.Message.setText("")
         self.Progress.hide()
         self.Run.setEnabled(False)
         self.Tabs.setTabVisible(1, False)
@@ -78,12 +84,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def check_run_btn(self):
         self.__update_config()
         if self.config.check_sanity():
-            self.MessageLabel.setText("")
+            self.Message.setText("")
             self.Run.setEnabled(True)
             self.Save.setEnabled(True)
             self.Export.setEnabled(True)
         else:
-            self.MessageLabel.setText("Configuration is incomplete")
+            self.Message.setText("Configuration is incomplete")
             self.Run.setEnabled(False)
             self.Save.setEnabled(False)
             self.Export.setEnabled(False)
@@ -99,21 +105,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 config["P2P"]["peers"].append(peer_i.text())
         self.config.set(config)
 
-    def run_btn(self):
-        import time
-        self.MessageLabel.setText("Starting P2P network")
-        self.Progress.show()
-
-        self.__disable_config()
-        print("RUN GLINDA!!")
-
-        while self.Progress.value() < 100:
-            self.Progress.setValue(self.Progress.value() + 25)
-            time.sleep(1)
-
-        self.Tabs.setTabVisible(1, True)
-        self.Message.setText("Finished")
-
     def __disable_config(self):
         self.host_field.setEnabled(False)
         self.password_field.setEnabled(False)
@@ -121,6 +112,82 @@ class MainWindow(QtWidgets.QMainWindow):
             peer_i: QtWidgets.QLineEdit = self.__getattribute__("Peer%dInput" % i)
             peer_i.setEnabled(False)
         self.covariant.setEnabled(False)
+
+    def run_btn(self):
+        self.__update_config()
+        self.Message.setText("Waiting for all peers")
+        self.__disable_config()
+
+        self.Open.setEnabled(False)
+        self.Save.setEnabled(False)
+        self.Export.setEnabled(False)
+        self.Run.setEnabled(False)
+        self.Progress.show()
+        self.Progress.setValue(0)
+
+        self.thread = QtCore.QThread()
+        self.worker = P2PWorker()
+
+        self.worker.set_config(self.config.get()["P2P"])
+        self.worker.moveToThread(self.thread)
+
+        self.thread.started.connect(self.worker.run)
+
+        self.worker.finished.connect(self.finishedWorker)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.progress.connect(self.reportProgress)
+        self.worker.results.connect(self.gotResults)
+
+        self.thread.start()
+
+    def finishedWorker(self):
+        self.Open.setEnabled(True)
+        self.Run.setEnabled(True)
+        self.Save.setEnabled(True)
+        self.Export.setEnabled(True)
+
+    def reportProgress(self, val: int):
+        if val == 0:
+            self.Progress.setValue(33)
+            self.Message.setText("Broadcast strings")
+        elif val == 1:
+            self.Progress.setValue(66)
+            self.Message.setText("Broadcast dictionaries")
+        elif val == 2:
+            self.Progress.setValue(100)
+            self.Tabs.setTabVisible(1, True)
+            self.Message.setText("Finished")
+
+    def gotResults(self, result: object):
+        self.Tabs.setTabVisible(1, True)
+        self.Tabs.setCurrentIndex(1)
+        self.ResultText.setText(str(result))
+
+
+class P2PWorker(QtCore.QObject):
+
+    finished = QtCore.pyqtSignal()
+    progress = QtCore.pyqtSignal(int)
+    results = QtCore.pyqtSignal(object)
+
+    def set_config(self, config: dict):
+        self.p2p_config = config
+
+    def run(self):
+        import random
+        p2p = Runner(self.p2p_config)
+        self.progress.emit(0)
+        strings = p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
+        print(strings)
+        self.progress.emit(1)
+        dicts = p2p.broadcast_obj({"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)})
+        self.progress.emit(2)
+        self.results.emit(dicts)
+
+        self.finished.emit()
+
 
 app = QtWidgets.QApplication(sys.argv)
 window = MainWindow()
