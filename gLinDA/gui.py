@@ -2,7 +2,7 @@ import time
 
 from config import Config
 from p2p import Runner
-from PyQt6 import QtWidgets, QtCore, uic
+from PyQt6 import QtWidgets, QtCore, uic, QtGui
 
 import sys
 
@@ -13,7 +13,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi("/home/roman/gui.ui", self)
+        uic.loadUi("gui.ui", self)
+        self.setWindowIcon(QtGui.QIcon("logo.png"))
 
         # gLinDA Configuration
         self.config: Config = Config(check_sanity=False)

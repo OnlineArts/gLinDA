@@ -54,10 +54,13 @@
         <x>10</x>
         <y>10</y>
         <width>241</width>
-        <height>281</height>
+        <height>313</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="ConfigP2PLayout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
        <property name="sizeConstraint">
         <enum>QLayout::SetDefaultConstraint</enum>
        </property>
@@ -129,7 +132,7 @@
         <x>260</x>
         <y>10</y>
         <width>241</width>
-        <height>281</height>
+        <height>311</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="ConfigLINDALayout" stretch="0,1,0">
@@ -137,7 +140,10 @@
         <number>10</number>
        </property>
        <property name="sizeConstraint">
-        <enum>QLayout::SetDefaultConstraint</enum>
+        <enum>QLayout::SetMinimumSize</enum>
+       </property>
+       <property name="bottomMargin">
+        <number>228</number>
        </property>
        <item>
         <widget class="QLabel" name="LindaLabel">
@@ -172,6 +178,22 @@
        </item>
       </layout>
      </widget>
+     <widget class="QLabel" name="Logo">
+      <property name="geometry">
+       <rect>
+        <x>520</x>
+        <y>10</y>
+        <width>261</width>
+        <height>281</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="pixmap">
+       <pixmap>logo.png</pixmap>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="ResultTab">
      <property name="enabled">
@@ -202,6 +224,9 @@
      </rect>
     </property>
     <layout class="QHBoxLayout" name="BottomBar">
+     <property name="sizeConstraint">
+      <enum>QLayout::SetDefaultConstraint</enum>
+     </property>
      <item>
       <widget class="QLabel" name="MessageLabel">
        <property name="sizePolicy">
