@@ -112,7 +112,7 @@ class Server(P2P):
                     key = self.keyring.for_reception(cache.identifier)
 
                 cache.msg = self.encryption.decrypt(cache.msg, key)
-                bucket.update({cache.msg: cache.msg})
+                bucket.update({cache.identifier: cache.msg})
 
                 if self.verbose >= 2:
                     print("Server #2: Used key %s" % key)
