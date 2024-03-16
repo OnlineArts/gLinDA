@@ -21,24 +21,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self._default_startup()
 
     def _default_startup(self):
+        # Basic layout
         self.Tabs: QtWidgets.QTabWidget = self.TabWidget
-        self.host_field: QtWidgets.QLineEdit = self.HostInput
-        self.password_field: QtWidgets.QLineEdit = self.PasswordInput
-        self.covariant: QtWidgets.QLineEdit = self.CovariantInput
 
+        # Menu bar
         self.Open: QtWidgets.QWidgetAction = self.actionOpenConfig
         self.Save: QtWidgets.QWidgetAction = self.actionSaveConfig
         self.Export: QtWidgets.QWidgetAction = self.actionExportConfig
 
+        # Configuration tab
+        self.host_field: QtWidgets.QLineEdit = self.HostInput
+        self.password_field: QtWidgets.QLineEdit = self.PasswordInput
+        self.covariant: QtWidgets.QLineEdit = self.CovariantInput
+
+        # Results tab
+        self.ResultText: QtWidgets.QTextBrowser = self.ResultLabel
+
+        # Footer
         self.Message: QtWidgets.QLabel = self.MessageLabel
         self.Progress: QtWidgets.QProgressBar = self.ProgressBar
         self.Run: QtWidgets.QPushButton = self.RunButton
-        self.ResultText: QtWidgets.QTextBrowser = self.ResultLabel
 
+        # Default values
         self.Message.setText("")
         self.Progress.hide()
         self.Run.setEnabled(False)
-        self.Tabs.setTabVisible(1, False)
+        self.Tabs.setTabVisible(1, False)  # Index 1: Results
         self.Save.setEnabled(False)
         self.Export.setEnabled(False)
 
@@ -181,11 +189,12 @@ class P2PWorker(QtCore.QObject):
         p2p = Runner(self.p2p_config)
         self.progress.emit(0)
         strings = p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
-        print(strings)
+        print(strings)#
         self.progress.emit(1)
-        dicts = p2p.broadcast_obj({"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)})
+        my_msg = {"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)}
+        dicts = p2p.broadcast_obj(my_msg)
         self.progress.emit(2)
-        self.results.emit(dicts)
+        self.results.emit("own message: %s, received: %s" % (my_msg, dicts))
 
         self.finished.emit()
 
