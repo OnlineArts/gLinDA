@@ -42,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Configuration tab
         self.host_field: QtWidgets.QLineEdit = self.HostInput
         self.password_field: QtWidgets.QLineEdit = self.PasswordInput
-        self.covariant: QtWidgets.QLineEdit = self.CovariantInput
+        self.covariates: QtWidgets.QLineEdit = self.CovariatesInput
 
         # Results tab
         self.ResultText: QtWidgets.QTextBrowser = self.ResultLabel
@@ -159,7 +159,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(1, self.peer_fields+1):
             peer_i: QtWidgets.QLineEdit = self.__getattribute__("Peer%dInput" % i)
             peer_i.setEnabled(status)
-        self.covariant.setEnabled(status)
+        self.covariates.setEnabled(status)
 
     def __menu_bar_status(self, status: bool = False):
         """
@@ -173,7 +173,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def run_btn(self):
         """
-        Triggers the action to perform after pressing the run button.
+        Triggers the run
         :return:
         """
         self.__update_config()
