@@ -14,13 +14,23 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi("gui.ui", self)
+
+        # Icon
         self.setWindowIcon(QtGui.QIcon("logo.png"))
+
+        # P2P and threading
+        self.thread = QtCore.QThread()
+        self.worker = P2PWorker()
 
         # gLinDA Configuration
         self.config: Config = Config(check_sanity=False)
         self._default_startup()
 
     def _default_startup(self):
+        """
+        Defines ground configuration.
+        """
+
         # Basic layout
         self.Tabs: QtWidgets.QTabWidget = self.TabWidget
 
@@ -51,12 +61,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Export.setEnabled(False)
 
     def load_configuration_file(self):
+        """
+        This function will be triggered by the "Open" dialog.
+        """
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open a gLinDA configuration file", "", "Configuration ini file (*.ini *.INI)")
+            self, "Open a gLinDA configuration file",
+            "", "Configuration ini file (*.ini *.INI)")
         if filename:
             self.__import_config_file(filename)
 
     def __import_config_file(self, config_path: str):
+        """
+        Import a configuration file and update the configuration fields.
+        :param config_path: path to the INI configuration file.
+        """
         self.config: Config = Config(ini_path=config_path, check_sanity=False)
         config = self.config.get()
 
@@ -79,19 +97,33 @@ class MainWindow(QtWidgets.QMainWindow):
         self.check_run_btn()
 
     def save_config(self):
+        """
+        TODO: stores the configuration as shown in the GUI.
+        :return:
+        """
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Store configuration file", "",
                                                             "Configuration ini file (*.ini *.INI)")
         if filename:
             print(filename)
 
     def export_config(self):
+        """
+        TODO: export configuration (with the host config field added to the peers).
+        This is required for auto-detection for the own host address, by that one configuration can be shared through
+        all peers.
+        """
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Store configuration file", "",
                                                             "Configuration ini file (*.ini *.INI)")
         if filename:
             print(filename)
 
     def check_run_btn(self):
+        """
+        Check whether the run button should be clickable (enabled).
+        """
         self.__update_config()
+
+        # Check if the configuration seems to be valid and complete
         if self.config.check_sanity():
             self.Message.setText("")
             self.Run.setEnabled(True)
@@ -104,6 +136,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.Export.setEnabled(False)
 
     def __update_config(self):
+        """
+        Overwrite the config object with GUI config fields
+        """
         config: dict = self.config.get()
         config["P2P"]["host"] = self.host_field.text()
         config["P2P"]["password"] = self.password_field.text()
@@ -114,34 +149,49 @@ class MainWindow(QtWidgets.QMainWindow):
                 config["P2P"]["peers"].append(peer_i.text())
         self.config.set(config)
 
-    def __disable_config(self):
-        self.host_field.setEnabled(False)
-        self.password_field.setEnabled(False)
+    def __config_fields_status(self, status: bool = False):
+        """
+        Disables or enables all configuration fields.
+        :param status: True to enable
+        """
+        self.host_field.setEnabled(status)
+        self.password_field.setEnabled(status)
         for i in range(1, self.peer_fields+1):
             peer_i: QtWidgets.QLineEdit = self.__getattribute__("Peer%dInput" % i)
-            peer_i.setEnabled(False)
-        self.covariant.setEnabled(False)
+            peer_i.setEnabled(status)
+        self.covariant.setEnabled(status)
+
+    def __menu_bar_status(self, status: bool = False):
+        """
+        Disables or enables all menu bar actions.
+        :param status: True to enable
+        """
+        self.Open.setEnabled(status)
+        self.Run.setEnabled(status)
+        self.Save.setEnabled(status)
+        self.Export.setEnabled(status)
 
     def run_btn(self):
+        """
+        Triggers the action to perform after pressing the run button.
+        :return:
+        """
         self.__update_config()
         self.Message.setText("Waiting for all peers")
-        self.__disable_config()
+        self.__config_fields_status(False)
+        self.__menu_bar_status(False)
 
-        self.Open.setEnabled(False)
-        self.Save.setEnabled(False)
-        self.Export.setEnabled(False)
-        self.Run.setEnabled(False)
+        # Show up progress bar
         self.Progress.show()
         self.Progress.setValue(0)
 
-        self.thread = QtCore.QThread()
-        self.worker = P2PWorker()
+        # Preparing Threading an P2P network
+        self.thread = QtCore.QThread()  # refresh the threads (they got deleted after each round)
+        self.worker = P2PWorker()  # same here
 
         self.worker.set_config(self.config.get()["P2P"])
         self.worker.moveToThread(self.thread)
-
         self.thread.started.connect(self.worker.run)
-
         self.worker.finished.connect(self.finishedWorker)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
@@ -152,10 +202,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.thread.start()
 
     def finishedWorker(self):
-        self.Open.setEnabled(True)
-        self.Run.setEnabled(True)
-        self.Save.setEnabled(True)
-        self.Export.setEnabled(True)
+        self.__menu_bar_status(True)
+        self.__config_fields_status(True)
 
     def reportProgress(self, val: int):
         if val == 0:
@@ -173,6 +221,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Tabs.setTabVisible(1, True)
         self.Tabs.setCurrentIndex(1)
         self.ResultText.setText(str(result))
+        self.Progress.hide()
 
 
 class P2PWorker(QtCore.QObject):

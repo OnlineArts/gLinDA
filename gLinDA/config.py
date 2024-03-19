@@ -47,7 +47,7 @@ class Config:
             self.config = self.merge_dictionary(self.config, arg_filtered)
 
         self.cast_parameters()
-        if self.config["P2P"]["resolve_host"] and self.config["P2P"]["resolve_host"] is None:
+        if self.config["P2P"]["resolve_host"] and self.config["P2P"]["resolve_host"] is not None:
             self.__resolve_host(False)
 
         if self.config["P2P"]["verbose"] >= 1:
@@ -81,6 +81,10 @@ class Config:
             import socket
             all_ips = list(self.__get_ip_addresses(socket.AF_INET)) + list(self.__get_ip_addresses(socket.AF_INET6))
             ips = list(filter(lambda x: (x[1] not in self.ip_filter), all_ips))
+
+            if self.config["P2P"]["verbose"] >= 2:
+                print("Network interfaces detected: %s" % str(ips))
+
         except Exception as e:
             if self.config["P2P"]["verbose"] >= 1:
                 print("Could not identify own ip address")
