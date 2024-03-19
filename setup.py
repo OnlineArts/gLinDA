@@ -14,7 +14,7 @@ setup(
     author_email='leon.fehse@hhu.de',
     license='BSD 3-clause',
     packages=['gLinDA'],
-    install_requires=["psutil","pycryptodome"],
+    install_requires=["psutil","pycryptodome","PyQt6"],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Science/Research',
