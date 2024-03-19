@@ -1,9 +1,6 @@
-import time
-
 from config import Config
 from p2p import Runner
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
-
 import sys
 
 
@@ -40,8 +37,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Export: QtWidgets.QWidgetAction = self.actionExportConfig
 
         # Configuration tab
+        ## P2P
         self.host_field: QtWidgets.QLineEdit = self.HostInput
         self.password_field: QtWidgets.QLineEdit = self.PasswordInput
+        self.aes: QtWidgets.QRadioButton = self.AESEncryption
+        self.rsa: QtWidgets.QRadioButton = self.RSAEncryption
+        self.Solo: QtWidgets.QCheckBox = self.SoloMode
+
+        # LinDA
         self.covariates: QtWidgets.QLineEdit = self.CovariatesInput
 
         # Results tab
@@ -59,6 +62,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Tabs.setTabVisible(1, False)  # Index 1: Results
         self.Save.setEnabled(False)
         self.Export.setEnabled(False)
+        self.rsa.setChecked(True)
 
     def load_configuration_file(self):
         """
@@ -93,6 +97,14 @@ class MainWindow(QtWidgets.QMainWindow):
                     break
                 peer_i: QtWidgets.QLineEdit = self.__getattribute__("Peer%dInput" % (i+1))
                 peer_i.setText(config["P2P"]["peers"][i])
+
+        if config["P2P"]["asymmetric"] is not None and type(config["P2P"]["asymmetric"]) is bool:
+            if config["P2P"]["asymmetric"]:
+                self.rsa.setChecked(True)
+                self.aes.setChecked(False)
+            else:
+                self.aes.setChecked(True)
+                self.rsa.setChecked(False)
 
         self.check_run_btn()
 
@@ -149,7 +161,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 config["P2P"]["peers"].append(peer_i.text())
         self.config.set(config)
 
-    def __config_fields_status(self, status: bool = False):
+    def __config_p2p_fields_status(self, status: bool = False):
         """
         Disables or enables all configuration fields.
         :param status: True to enable
@@ -159,6 +171,10 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(1, self.peer_fields+1):
             peer_i: QtWidgets.QLineEdit = self.__getattribute__("Peer%dInput" % i)
             peer_i.setEnabled(status)
+        self.aes.setEnabled(status)
+        self.rsa.setEnabled(status)
+
+    def __config_linda_fields_status(self, status: bool = False):
         self.covariates.setEnabled(status)
 
     def __menu_bar_status(self, status: bool = False):
@@ -178,7 +194,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         self.__update_config()
         self.Message.setText("Waiting for all peers")
-        self.__config_fields_status(False)
+        self.__config_p2p_fields_status(False)
+        self.__config_linda_fields_status(False)
         self.__menu_bar_status(False)
 
         # Show up progress bar
@@ -203,7 +220,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def finishedWorker(self):
         self.__menu_bar_status(True)
-        self.__config_fields_status(True)
+        self.__config_p2p_fields_status(True)
+        self.__config_linda_fields_status(True)
 
     def reportProgress(self, val: int):
         if val == 0:
@@ -223,6 +241,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ResultText.setText(str(result))
         self.Progress.hide()
 
+    def solo_mode(self):
+        if self.Solo.isChecked():
+            self.__config_p2p_fields_status(False)
+        else:
+            self.__config_p2p_fields_status(True)
+
 
 class P2PWorker(QtCore.QObject):
 
@@ -235,14 +259,19 @@ class P2PWorker(QtCore.QObject):
 
     def run(self):
         import random
+        import time
+
         p2p = Runner(self.p2p_config)
+        time.sleep(1)
         self.progress.emit(0)
         strings = p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
-        print(strings)#
+        print(strings)
         self.progress.emit(1)
+        time.sleep(1)
         my_msg = {"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)}
         dicts = p2p.broadcast_obj(my_msg)
         self.progress.emit(2)
+        time.sleep(1)
         self.results.emit("own message: %s, received: %s" % (my_msg, dicts))
 
         self.finished.emit()

@@ -29,7 +29,7 @@ class Server(P2P):
         :return: the messages
         """
         return self.__answers
-
+    
     def __await_responses(self, host: str, bucket, func: object):
         """
         Basic backbone for the host connection

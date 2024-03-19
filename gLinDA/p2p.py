@@ -201,7 +201,7 @@ class EncryptionAsymmetric:
         return msg
 
     @staticmethod
-    def get_key(bits: int = 1024, verbose: bool = True) -> tuple:
+    def get_key(bits: int = 2048, verbose: bool = True) -> tuple:
         key = RSA.generate(bits)
         if verbose:
             print("EncryptionAsymmetric: Create public and private RSA keys")
