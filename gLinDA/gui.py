@@ -17,7 +17,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # P2P and threading
         self.thread = QtCore.QThread()
-        self.worker = P2PWorker()
+        self.worker = gLinDAWorker()
 
         # gLinDA Configuration
         self.config: Config = Config(check_sanity=False)
@@ -25,7 +25,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _default_startup(self):
         """
-        Defines ground configuration.
+        Defines default GUI elements
         """
 
         # Basic layout
@@ -42,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.password_field: QtWidgets.QLineEdit = self.PasswordInput
         self.aes: QtWidgets.QRadioButton = self.AESEncryption
         self.rsa: QtWidgets.QRadioButton = self.RSAEncryption
-        self.Solo: QtWidgets.QCheckBox = self.SoloMode
+        self.solo: QtWidgets.QCheckBox = self.SoloMode
 
         # LinDA
         self.covariates: QtWidgets.QLineEdit = self.CovariatesInput
@@ -142,7 +142,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.Save.setEnabled(True)
             self.Export.setEnabled(True)
         else:
-            self.Message.setText("Configuration is incomplete")
             self.Run.setEnabled(False)
             self.Save.setEnabled(False)
             self.Export.setEnabled(False)
@@ -159,6 +158,7 @@ class MainWindow(QtWidgets.QMainWindow):
             peer_i: QtWidgets.QLineEdit = self.__getattribute__("Peer%dInput" % i)
             if len(peer_i.text()):
                 config["P2P"]["peers"].append(peer_i.text())
+        config["P2P"]["solo_mode"] = self.solo.isChecked()
         self.config.set(config)
 
     def __config_p2p_fields_status(self, status: bool = False):
@@ -189,8 +189,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def run_btn(self):
         """
-        Triggers the run
-        :return:
+        Triggers the gLinDA P2P or Solo Mode execution
+        """
+        if self.solo.isChecked():
+            # Solo mode
+            self._run_solo_gLinDA()  # placeholder currently
+        else:
+            self._run_p2p_gLinDA()
+
+    def _run_p2p_gLinDA(self):
+        """
+        Triggers the gLinDA execution in a separated thread
         """
         self.__update_config()
         self.Message.setText("Waiting for all peers")
@@ -204,26 +213,45 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Preparing Threading an P2P network
         self.thread = QtCore.QThread()  # refresh the threads (they got deleted after each round)
-        self.worker = P2PWorker()  # same here
+        self.worker = gLinDAWorker()  # same here
 
-        self.worker.set_config(self.config.get()["P2P"])
+        self.worker.set_config(self.config.get())  # Sets the configuration
         self.worker.moveToThread(self.thread)
+
+        # Defines the callback functions for the threads and workers
         self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.finishedWorker)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+        self.worker.finished.connect(self.worker_finished)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.worker.progress.connect(self.reportProgress)
-        self.worker.results.connect(self.gotResults)
+        self.worker.progress.connect(self.worker_progress_update)
+        self.worker.results.connect(self.worker_results_presentation)
 
+        # Starts all threads
         self.thread.start()
 
-    def finishedWorker(self):
+    def _run_solo_gLinDA(self):
+        """
+        Triggers the gLinDA solo mode execution in a separated thread
+        """
+        # placeholder #
+        pass
+
+    def worker_finished(self):
+        """
+        Resets all configuration menus
+        """
         self.__menu_bar_status(True)
         self.__config_p2p_fields_status(True)
         self.__config_linda_fields_status(True)
+        self.Progress.hide()
 
-    def reportProgress(self, val: int):
+    def worker_progress_update(self, val: int):
+        """
+        Updates the current progress state
+        :param val: integer indicate the current state
+        """
         if val == 0:
             self.Progress.setValue(33)
             self.Message.setText("Broadcast strings")
@@ -235,33 +263,52 @@ class MainWindow(QtWidgets.QMainWindow):
             self.Tabs.setTabVisible(1, True)
             self.Message.setText("Finished")
 
-    def gotResults(self, result: object):
+    def worker_results_presentation(self, result: object):
+        """
+        Shows the results from the gLinDAWorker computations.
+        :param result:
+        """
         self.Tabs.setTabVisible(1, True)
         self.Tabs.setCurrentIndex(1)
         self.ResultText.setText(str(result))
-        self.Progress.hide()
 
     def solo_mode(self):
-        if self.Solo.isChecked():
+        """
+        Disable or enable the P2P configuration fields
+        """
+        if self.solo.isChecked():
             self.__config_p2p_fields_status(False)
         else:
             self.__config_p2p_fields_status(True)
+        self.check_run_btn()
 
 
-class P2PWorker(QtCore.QObject):
+class gLinDAWorker(QtCore.QObject):
+    """
+    This object will run in a separate thread, containing the actual gLinDA execution
+    """
 
+    # These are Signals that communicate with the main GUI object thread
     finished = QtCore.pyqtSignal()
     progress = QtCore.pyqtSignal(int)
     results = QtCore.pyqtSignal(object)
 
     def set_config(self, config: dict):
-        self.p2p_config = config
+        """
+        Sets the configuration
+        :param config: a dictionary with all configurations
+        """
+        self.config = config
 
     def run(self):
+        """
+        Performs the P2P demo execution
+        :return:
+        """
         import random
         import time
 
-        p2p = Runner(self.p2p_config)
+        p2p = Runner(self.config["P2P"])
         time.sleep(1)
         self.progress.emit(0)
         strings = p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
@@ -277,7 +324,12 @@ class P2PWorker(QtCore.QObject):
         self.finished.emit()
 
 
-app = QtWidgets.QApplication(sys.argv)
-window = MainWindow()
-window.show()
-app.exec()
+def main():
+    app = QtWidgets.QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    app.exec()
+
+
+if __name__ == "__main__":
+    main()

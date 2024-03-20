@@ -54,7 +54,7 @@
         <x>10</x>
         <y>10</y>
         <width>241</width>
-        <height>313</height>
+        <height>461</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="ConfigP2PLayout">
@@ -124,6 +124,51 @@
        <item>
         <widget class="QLineEdit" name="PasswordInput"/>
        </item>
+       <item>
+        <widget class="QLabel" name="EncryptionLabel">
+         <property name="text">
+          <string>Encryption</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="EncryptionGroup">
+         <item>
+          <widget class="QRadioButton" name="RSAEncryption">
+           <property name="text">
+            <string>RSA+AES</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="AESEncryption">
+           <property name="text">
+            <string>AES</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="SoloMode">
+         <property name="text">
+          <string>Single Mode</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="verticalLayoutWidget_2">
@@ -132,7 +177,7 @@
         <x>260</x>
         <y>10</y>
         <width>241</width>
-        <height>311</height>
+        <height>468</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="ConfigLINDALayout" stretch="0,1,0">
@@ -143,7 +188,7 @@
         <enum>QLayout::SetMinimumSize</enum>
        </property>
        <property name="bottomMargin">
-        <number>228</number>
+        <number>385</number>
        </property>
        <item>
         <widget class="QLabel" name="LindaLabel">
@@ -540,6 +585,54 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>RSAEncryption</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>check_run_btn()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>71</x>
+     <y>432</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>AESEncryption</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>check_run_btn()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>193</x>
+     <y>432</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>SoloMode</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>solo_mode()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>132</x>
+     <y>519</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>load_configuration_file()</slot>
@@ -547,5 +640,6 @@
   <slot>run_btn()</slot>
   <slot>save_config()</slot>
   <slot>export_config()</slot>
+  <slot>solo_mode()</slot>
  </slots>
 </ui>

@@ -19,6 +19,7 @@ class Config:
             "ignore_keys":  False,
             "resolve_host": True,
             "asymmetric":   True,
+            "solo_mode":    False
         },
         "LINDA": {
             "covariant":    None
@@ -69,6 +70,7 @@ class Config:
 
         self.config["P2P"]["ignore_keys"] = self._cast_bool(self.config["P2P"]["ignore_keys"])
         self.config["P2P"]["asymmetric"] = self._cast_bool(self.config["P2P"]["asymmetric"])
+        self.config["P2P"]["solo_mode"] = self._cast_bool(self.config["P2P"]["solo_mode"])
 
     def __resolve_host(self, include_own_host: bool = False) -> bool:
         """
@@ -142,6 +144,14 @@ class Config:
         """
         Check if basic requirements are fulfilled
         """
+
+        # LinDA configuration
+        # placehoholder
+
+        # P2P configuration
+        if "solo_mode" in self.config["P2P"] and self.config["P2P"]["solo_mode"] is not None and self.config["P2P"]["solo_mode"]:
+            return True
+
         if "password" not in self.config["P2P"] or self.config["P2P"]["password"] is None or len(self.config["P2P"]["password"]) == 0:
             print("Config: Can not run without a common password.")
             return False
