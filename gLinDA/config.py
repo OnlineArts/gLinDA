@@ -15,14 +15,14 @@ class Config:
             "peers":        [],
             "password":     None,
             "verbose":      0,
-            "test":         None,
-            "ignore_keys":  False,
-            "resolve_host": True,
             "asymmetric":   True,
-            "solo_mode":    False
+            "solo_mode":    False,
+            "ignore_keys":  False,  # only for internal use
+            "test":         None,   # only for internal use
+            "resolve_host": True,   # only for internal use
         },
         "LINDA": {
-            "covariant":    None
+            "covariant":    None,
         }
     }
     ip_filter: list = ["localhost", "127.0.0.1", "::1"]
