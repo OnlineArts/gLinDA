@@ -1,5 +1,6 @@
+import time
 from pickle import loads, dumps
-from threading import Thread
+from threading import Thread, Event
 from copy import deepcopy
 
 from Crypto.Hash import MD5, SHA256, SHA512
@@ -275,13 +276,20 @@ class Runner:
             if self.verbose >= 1:
                 print("gLinDA: Starting server in a separate thread for broadcasting")
             results: dict = {}
-            thread = Thread(target=self.run_server, args=(False, results))
+            server_ready: Event = Event()
+
+            thread = Thread(target=self.run_server, args=(False, results, server_ready))
             thread.start()
+
+            server_ready.wait()
+
             client = self.run_client()
             client.send_payload(payload)
             thread.join()
             if self.verbose >= 1:
                 print("=> Broadcasting finished")
+
+            time.sleep(0.5)
             return results
 
     def __initialize_keyring(self):
@@ -313,21 +321,24 @@ class Runner:
         :return: return a full keyring
         """
         print("Starting server in a separate thread for handshaking")
-        thread = Thread(target=self.run_server, args=(True,))
+        server_ready: Event = Event()
+        thread = Thread(target=self.run_server, args=(True, None, server_ready))
         thread.start()
+
+        server_ready.wait()
         client = self.run_client(True)
         thread.join()
         if self.verbose >= 1:
             print("==> Handshake complete!")
         return client.keyring
 
-    def run_server(self, initial: bool = False, results: dict = {}):
+    def run_server(self, initial: bool = False, results: dict = {}, event: Event = None):
         """
         Loads the P2P Server class, that is listening.
         :return: the server class object
         """
         from p2p_server import Server
-        server = Server(self.config, self.keyring, initial, results)
+        server = Server(self.config, self.keyring, initial, results, event=event)
         return server
 
     def run_client(self, initial: bool = False):

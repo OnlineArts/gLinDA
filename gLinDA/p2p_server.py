@@ -1,17 +1,19 @@
 from p2p import P2P, Keyring, P2PPackage
-
+from threading import Event
 import socket
 import random
 
 
 class Server(P2P):
 
-    def __init__(self, config: dict, keyring: Keyring = None, initial: bool = False, results: dict = {}):
+    def __init__(self, config: dict, keyring: Keyring = None, initial: bool = False,
+                 results: dict = {}, event: Event = None):
         if keyring is None:
             keyring = Keyring()
         super().__init__(config, keyring)
         self.__answers: dict = {}
         self.nr_clients: int = len(self.peers)
+        self.event = event
 
         if self.nr_clients == 0:
             print("No clients awaiting, terminating server")
@@ -46,6 +48,9 @@ class Server(P2P):
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((host, int(port)))
             s.listen()
+
+            if self.event is not None:  # only for multi-threaded call
+                self.event.set()
 
             try:
                 while self.__inner_loop(s, bucket, func):
