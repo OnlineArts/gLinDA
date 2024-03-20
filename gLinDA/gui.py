@@ -306,19 +306,15 @@ class gLinDAWorker(QtCore.QObject):
         :return:
         """
         import random
-        import time
 
         p2p = Runner(self.config["P2P"])
-        time.sleep(1)
         self.progress.emit(0)
         strings = p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
         print(strings)
         self.progress.emit(1)
-        time.sleep(1)
         my_msg = {"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)}
         dicts = p2p.broadcast_obj(my_msg)
         self.progress.emit(2)
-        time.sleep(1)
         self.results.emit("own message: %s, received: %s" % (my_msg, dicts))
 
         self.finished.emit()
