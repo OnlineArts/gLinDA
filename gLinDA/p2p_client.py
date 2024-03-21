@@ -54,10 +54,13 @@ class Client(P2P):
 
                         s.close()
                     except ConnectionRefusedError as e:
-                        print("Client: Are you sure the peer %s is reachable? Retry in %d s" % (peer, super().waiting_time))
+                        if self.verbose >= 1:
+                            print("Client: Are you sure the peer %s is reachable? Retry in %d s" % (peer, super().waiting_time))
                         time.sleep(super().waiting_time)
+                        super().set_waiting_time(super().waiting_time+1)
                     except Exception as e:
                         print(e)
+        time.sleep(super().waiting_time)  # Test, wait after sending
 
     def __initiate_communication(self, peer: str):
         try:
@@ -107,10 +110,10 @@ class Client(P2P):
                         if self.verbose >= 1:
                             print("Client: Are you sure the peer %s is reachable? Retry in %d s" % (
                             peer, super().waiting_time))
-                        else:
-                            print("Client: Try to connect to %s" % peer)
                         time.sleep(super().waiting_time)
+                        super().set_waiting_time(super().waiting_time+1)
                     except Exception as e:
                         print(e)
         except KeyboardInterrupt as e:
             print("Client: Terminated manually")
+        time.sleep(super().waiting_time)  # Test, wait after sending

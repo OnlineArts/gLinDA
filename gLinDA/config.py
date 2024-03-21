@@ -22,10 +22,26 @@ class Config:
             "resolve_host": True,   # only for internal use
         },
         "LINDA": {
-            "covariant":    None,
+            "formula":              "",
+            "feature_table":        "",
+            "metadata_table":       "",
+            "feature_data_type":    "count",
+            "prevalence":           0,
+            "mean_abundance":       0,
+            "max_abundance":        0,
+            "zero_handling":        "pseudo_count",
+            "p_adjustment_method":  "BH",
+            "alpha":                0.05,
+            "outlier_percentage":   0.03,
+            "pseudo_count":         0.5,
+            "correction_cutoff":    0.1,
+            "verbose":              False,
+            "winsor":               True,
+            "adaptive":             True
         }
     }
     ip_filter: list = ["localhost", "127.0.0.1", "::1"]
+    msg: str = ""
 
     def __init__(self, arguments: argparse.ArgumentParser = None, ini_path: str = None, check_sanity: bool = True):
         if arguments is None and ini_path is None:
@@ -71,6 +87,9 @@ class Config:
         self.config["P2P"]["ignore_keys"] = self._cast_bool(self.config["P2P"]["ignore_keys"])
         self.config["P2P"]["asymmetric"] = self._cast_bool(self.config["P2P"]["asymmetric"])
         self.config["P2P"]["solo_mode"] = self._cast_bool(self.config["P2P"]["solo_mode"])
+
+        self.config["LINDA"]["winsor"] = self._cast_bool(self.config["LINDA"]["winsor"])
+        self.config["LINDA"]["adaptive"] = self._cast_bool(self.config["LINDA"]["adaptive"])
 
     def __resolve_host(self, include_own_host: bool = False) -> bool:
         """
@@ -146,21 +165,56 @@ class Config:
         """
 
         # LinDA configuration
-        # placehoholder
+        if "alpha" not in self.config["LINDA"] or not self.is_float(self.config["LINDA"]["alpha"]):
+            self.msg = "Config: Alpha does not look like a floating number"
+            print(self.msg)
+            return False
+        elif self.is_float(self.config["LINDA"]["alpha"]) and not (0 < float(self.config["LINDA"]["alpha"]) < 1):
+            self.msg = "Config: Alpha should be bigger than 0 and smaller than 1"
+            print(self.msg)
+            return False
+
+        if "outlier_percentage" not in self.config["LINDA"] or not self.is_float(self.config["LINDA"]["outlier_percentage"]):
+            self.msg = "Config: outlier_percentage does not look like a floating number"
+            print(self.msg)
+            return False
+        elif self.is_float(self.config["LINDA"]["outlier_percentage"]) and not (0 < float(self.config["LINDA"]["outlier_percentage"]) < 1):
+            self.msg = "Config: outlier_percentage should be bigger than 0 and smaller than 1"
+            print(self.msg)
+            return False
+
+        if not len(self.config["LINDA"]["feature_table"]) or not os.path.exists(self.config["LINDA"]["feature_table"]):
+            self.msg = "Config: Feature Table data table does not exists"
+            print(self.msg)
+            return False
+
+        if not len(self.config["LINDA"]["metadata_table"]) or not os.path.exists(self.config["LINDA"]["metadata_table"]):
+            self.msg = "Config: Meta data table does not exists"
+            print(self.msg)
+            return False
+
+        if not len(self.config["LINDA"]["formula"]):
+            self.msg = "Config: Formula is missing"
+            print(self.msg)
+            return False
 
         # P2P configuration
-        if "solo_mode" in self.config["P2P"] and self.config["P2P"]["solo_mode"] is not None and self.config["P2P"]["solo_mode"]:
+        ## Solo Mode
+        if self.config["P2P"]["solo_mode"] is not None and self.config["P2P"]["solo_mode"]:
             return True
 
-        if "password" not in self.config["P2P"] or self.config["P2P"]["password"] is None or len(self.config["P2P"]["password"]) == 0:
-            print("Config: Can not run without a common password.")
+        if self.config["P2P"]["password"] is None or len(self.config["P2P"]["password"]) == 0:
+            self.msg = "Config: Can not run without a common password."
+            print(self.msg)
             return False
 
         if "peers" not in self.config["P2P"] or self.config["P2P"]["peers"] is None or len(self.config["P2P"]["peers"]) == 0:
-            print("Config: Missing peers. You can not run gLinDA only by yourself.")
+            self.msg = "Config: Missing peers. You can not run gLinDA only by yourself."
+            print(self.msg)
             return False
         elif type(self.config["P2P"]["peers"]) is not list:
-            print("Config: Expecting a list of peers")
+            self.msg = "Config: Expecting a list of peers"
+            print(self.msg)
             return False
         else:
             for peer in self.config["P2P"]["peers"]:
@@ -177,8 +231,27 @@ class Config:
         return True
 
     def save_config_to_file(self, path: str):
-        print("Saving here:")
-        print(path)
+        lines: int = 0
+
+        with open(path, "w") as f:
+            for category in self.config.keys():
+                spacer = "\r\n\r\n" if lines > 0 else ""
+                f.write("%s[%s]" % (spacer, category))
+                for key in self.config[category].keys():
+                    value = self.config[category][key]
+                    if type(value) is list:
+                        value = " ".join(value)
+                    f.write("\r\n%s = %s" % (key, str(value)))
+                    lines += 1
+        f.close()
+
+    @staticmethod
+    def is_float(value: str) -> bool:
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False
 
     @staticmethod
     def _is_ip_and_port(value: str) -> bool:
@@ -200,7 +273,15 @@ class Config:
         if type(value) is not str:
             value = str(value)
 
-        return True if value == "True" or value == "1" else False
+        value = value.lower()
+        return True if (value == "true" or value == "1" or value == "yes") else False
+
+    @staticmethod
+    def _cast_float(value):
+        if Config.is_float(value):
+            return float(value)
+        else:
+            return 0.0
 
     @staticmethod
     def _config_parser(config_file_path: str) -> dict:

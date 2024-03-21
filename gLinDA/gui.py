@@ -1,12 +1,12 @@
 from config import Config
 from p2p import Runner
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
+from os import path
 import sys
-
 
 class MainWindow(QtWidgets.QMainWindow):
 
-    peer_fields: int = 4
+    peer_fields: int = 5
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -46,6 +46,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # LinDA
         self.covariates: QtWidgets.QLineEdit = self.CovariatesInput
+        self.featuredata: QtWidgets.QLineEdit = self.FeatureDataTableButton
+        self.metadata: QtWidgets.QLineEdit = self.MetaDataTableButton
 
         # Results tab
         self.ResultText: QtWidgets.QTextBrowser = self.ResultLabel
@@ -74,11 +76,38 @@ class MainWindow(QtWidgets.QMainWindow):
         if filename:
             self.__import_config_file(filename)
 
+    def select_feature_data(self):
+        filename, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open a feature data table file",
+            "", "Table file (*.csv *.CSV *.xls *.XLS)")
+        if filename:
+            self.featuredata.setText(path.basename(filename))
+            cfg: dict = self.config.get()
+            cfg["LINDA"]["feature_table"] = filename
+            self.config.set(cfg)
+            self.check_run_btn()
+
+    def select_metadata(self):
+        filename, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open a metadata table file",
+            "", "Table file (*.csv *.CSV *.xls *.XLS)")
+        if filename:
+            self.metadata.setText(path.basename(filename))
+            cfg: dict = self.config.get()
+            cfg["LINDA"]["metadata_table"] = filename
+            self.config.set(cfg)
+            self.check_run_btn()
+
+    def hover_run_button(self):
+        print("here!")
+
     def __import_config_file(self, config_path: str):
         """
         Import a configuration file and update the configuration fields.
         :param config_path: path to the INI configuration file.
         """
+
+        ## P2P
         self.config: Config = Config(ini_path=config_path, check_sanity=False)
         config = self.config.get()
 
@@ -106,6 +135,22 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.aes.setChecked(True)
                 self.rsa.setChecked(False)
 
+        if config["P2P"]["solo_mode"] is not None and type(config["P2P"]["solo_mode"]) is bool:
+            self.solo.setChecked(config["P2P"]["solo_mode"])
+            self.solo_mode()
+
+        ## LINDA
+        if config["LINDA"]["formula"] is not None and type(config["LINDA"]["formula"]) is str and len(config["LINDA"]["formula"]):
+            self.covariates.setText(config["LINDA"]["formula"])
+
+        if config["LINDA"]["feature_table"] is not None and type(config["LINDA"]["feature_table"]) is str and \
+            path.exists(config["LINDA"]["feature_table"]):
+            self.featuredata.setText(path.basename(config["LINDA"]["feature_table"]))
+
+        if config["LINDA"]["metadata_table"] is not None and type(config["LINDA"]["metadata_table"]) is str and \
+            path.exists(config["LINDA"]["metadata_table"]):
+            self.metadata.setText(path.basename(config["LINDA"]["metadata_table"]))
+
         self.check_run_btn()
 
     def save_config(self):
@@ -116,18 +161,23 @@ class MainWindow(QtWidgets.QMainWindow):
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Store configuration file", "",
                                                             "Configuration ini file (*.ini *.INI)")
         if filename:
-            print(filename)
+            self.config.save_config_to_file(filename)
 
     def export_config(self):
         """
-        TODO: export configuration (with the host config field added to the peers).
         This is required for auto-detection for the own host address, by that one configuration can be shared through
         all peers.
         """
         filename, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Store configuration file", "",
                                                             "Configuration ini file (*.ini *.INI)")
         if filename:
-            print(filename)
+            cfg: dict = self.config.get()
+            host = cfg["P2P"].pop("host")
+            cfg["P2P"]["peers"].append(host)
+            cfg["P2P"]["solo_mode"] = False
+            new_cfg: Config = Config(check_sanity=False)
+            new_cfg.set(cfg)
+            new_cfg.save_config_to_file(filename)
 
     def check_run_btn(self):
         """
@@ -142,6 +192,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.Save.setEnabled(True)
             self.Export.setEnabled(True)
         else:
+            if len(self.config.msg):
+                self.Run.setToolTip(self.config.msg)
             self.Run.setEnabled(False)
             self.Save.setEnabled(False)
             self.Export.setEnabled(False)
@@ -151,6 +203,8 @@ class MainWindow(QtWidgets.QMainWindow):
         Overwrite the config object with GUI config fields
         """
         config: dict = self.config.get()
+
+        # P2P
         config["P2P"]["host"] = self.host_field.text()
         config["P2P"]["password"] = self.password_field.text()
         config["P2P"]["peers"]: list = []
@@ -159,6 +213,10 @@ class MainWindow(QtWidgets.QMainWindow):
             if len(peer_i.text()):
                 config["P2P"]["peers"].append(peer_i.text())
         config["P2P"]["solo_mode"] = self.solo.isChecked()
+
+        # LINDA
+        config["LINDA"]["alpha"] = self.AlphaInput.text()
+
         self.config.set(config)
 
     def __config_p2p_fields_status(self, status: bool = False):

@@ -115,6 +115,13 @@
         <widget class="QLineEdit" name="Peer4Input"/>
        </item>
        <item>
+        <widget class="QLineEdit" name="Peer5Input">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="PasswordLabe">
          <property name="text">
           <string>Password</string>
@@ -174,13 +181,13 @@
      <widget class="QWidget" name="verticalLayoutWidget_2">
       <property name="geometry">
        <rect>
-        <x>260</x>
+        <x>270</x>
         <y>10</y>
         <width>241</width>
-        <height>468</height>
+        <height>461</height>
        </rect>
       </property>
-      <layout class="QVBoxLayout" name="ConfigLINDALayout" stretch="0,1,0">
+      <layout class="QVBoxLayout" name="ConfigLINDALayout" stretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0">
        <property name="spacing">
         <number>10</number>
        </property>
@@ -188,7 +195,7 @@
         <enum>QLayout::SetMinimumSize</enum>
        </property>
        <property name="bottomMargin">
-        <number>385</number>
+        <number>6</number>
        </property>
        <item>
         <widget class="QLabel" name="LindaLabel">
@@ -207,27 +214,112 @@
        </item>
        <item>
         <widget class="QLabel" name="CovariatesLabel">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
          <property name="text">
-          <string>Covariates</string>
+          <string>Linear Formula</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QLineEdit" name="CovariatesInput"/>
        </item>
+       <item>
+        <widget class="QLabel" name="DataTablesLabel">
+         <property name="text">
+          <string>Data Tables</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="FeatureDataTableButton">
+         <property name="text">
+          <string>Feature Data</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="MetaDataTableButton">
+         <property name="text">
+          <string>Meta Data</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="FeatureDataTypeLabel">
+         <property name="text">
+          <string>Feature Data Type</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="FeatureDataTypeCombo">
+         <item>
+          <property name="text">
+           <string>count</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>proportion</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="AlphaLabel">
+         <property name="text">
+          <string>Alpha</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="AlphaInput">
+         <property name="text">
+          <string>0.05</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="WinsorLabel">
+         <property name="text">
+          <string>Winsor</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="WinsorCombo">
+         <item>
+          <property name="text">
+           <string>Yes</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>No</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="OutlierPctLabel">
+         <property name="text">
+          <string>Expected Outlier Percentage</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="OutlierPctInput">
+         <property name="text">
+          <string>0.03</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
      <widget class="QLabel" name="Logo">
       <property name="geometry">
        <rect>
-        <x>520</x>
-        <y>10</y>
+        <x>530</x>
+        <y>-10</y>
         <width>261</width>
         <height>281</height>
        </rect>
@@ -238,6 +330,50 @@
       <property name="pixmap">
        <pixmap>logo.png</pixmap>
       </property>
+     </widget>
+     <widget class="QWidget" name="verticalLayoutWidget_3">
+      <property name="geometry">
+       <rect>
+        <x>530</x>
+        <y>280</y>
+        <width>241</width>
+        <height>191</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="ConfigLINDA2Layout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <property name="bottomMargin">
+        <number>126</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="ZeroHandlingLabel">
+         <property name="text">
+          <string>Zero Handling</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="ZeroHandlingInput">
+         <item>
+          <property name="text">
+           <string>adaptive</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>pseudo_count</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>imputation</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </widget>
     <widget class="QWidget" name="ResultTab">
@@ -522,22 +658,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>RunButton</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>run_btn()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>749</x>
-     <y>567</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>actionExit</sender>
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
@@ -633,6 +753,70 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>AlphaInput</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>check_run_btn()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>392</x>
+     <y>389</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>RunButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>run_btn()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>749</x>
+     <y>567</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>FeatureDataTableButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>select_feature_data()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>392</x>
+     <y>182</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>MetaDataTableButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>select_metadata()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>392</x>
+     <y>248</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>load_configuration_file()</slot>
@@ -641,5 +825,7 @@
   <slot>save_config()</slot>
   <slot>export_config()</slot>
   <slot>solo_mode()</slot>
+  <slot>select_feature_data()</slot>
+  <slot>select_metadata()</slot>
  </slots>
 </ui>

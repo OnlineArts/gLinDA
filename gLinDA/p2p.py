@@ -73,7 +73,7 @@ class P2P:
     min_rand: int = 1000000
     max_rand: int = 9999999
     bytes_len: int = 3
-    waiting_time: int = 3
+    waiting_time: int = 2
     chunk_size: int = 1024000
     symmetric = False
 
@@ -98,6 +98,8 @@ class P2P:
             self.encryption.set_init_vector(initialization_vector)
             self.keyring.set_iv(initialization_vector)
 
+    def set_waiting_time(self, waiting_time: int):
+        self.waiting_time = waiting_time
 
 class EncryptionSymmetric:
 
@@ -198,7 +200,13 @@ class EncryptionAsymmetric:
     def decrypt(cipher: bytes, private_key: bytes) -> bytes:
         private_key = RSA.importKey(private_key)
         ciper_rsa = PKCS1_OAEP.new(private_key)
-        msg = ciper_rsa.decrypt(cipher)
+        try:
+            msg = ciper_rsa.decrypt(cipher)
+        except ValueError:
+            print("Error during decryption, private key: %s" % str(private_key))
+            print("Cipher: %s" % str(cipher))
+            raise ValueError()
+            return bytes()
         return msg
 
     @staticmethod
@@ -289,7 +297,6 @@ class Runner:
             if self.verbose >= 1:
                 print("=> Broadcasting finished")
 
-            time.sleep(0.5)
             return results
 
     def __initialize_keyring(self):
@@ -320,7 +327,8 @@ class Runner:
         Runs the multi-thread initialization, handshaking.
         :return: return a full keyring
         """
-        print("Starting server in a separate thread for handshaking")
+        if self.verbose >= 1:
+            print("Starting server in a separate thread for handshaking")
         server_ready: Event = Event()
         thread = Thread(target=self.run_server, args=(True, None, server_ready))
         thread.start()
