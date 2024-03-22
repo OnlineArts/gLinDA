@@ -92,12 +92,26 @@ class LinDA:
         return Y
 
     @staticmethod
-    def trans_linda(feature_dat, meta_dat, formula,
-                    feature_dat_type='count', data_name="", model_output_path="", prev_filter: float = 0.0,
-                    mean_abund_filter=0, max_abund_filter=0, is_winsor=True,
-                    outlier_pct=0.03, adaptive=True, zero_handling='pseudo_count',
-                    pseudo_count=0.5, corr_cut=0.1, p_adj_method='BH',
-                    alpha=0.05, n_cores=1, verbose=True):
+    def read_table(path: str, col: str = "") -> pd.DataFrame:
+        if len(col):
+            table: pd.DataFrame = pd.read_csv(path, index_col=col)
+            return table
+        else:
+            for col in ["ID", "id", "SampleID", "Sample", "sample"]:
+                try:
+                    table: pd.DataFrame = pd.read_csv(path, index_col=col)
+                    return table
+                except ValueError:
+                    continue
+
+        return table
+
+    def linda(self,
+              feature_dat: pd.DataFrame, meta_dat: pd.DataFrame, formula: str, feature_dat_type: str = 'count',
+              data_name: str = "", prev_filter: float = 0.0,  mean_abund_filter: float = 0,
+              max_abund_filter: float = 0, is_winsor: bool = True, outlier_pct: float = 0.03, adaptive: bool = True,
+              zero_handling: str = 'pseudo_count', pseudo_count: float = 0.5, corr_cut: float = 0.1,
+              verbose: bool = True) -> dict:
 
         if feature_dat.isnull().values.any():
             raise Exception("The feature table contains NAs! Please remove!\n")
@@ -139,8 +153,8 @@ class LinDA:
             print(f"The filtered data has {n} samples and {m} features will be tested")
 
         if sum((Y != 0).sum(axis=1) <= 2) != 0:
-            print(
-                "'Some features have less than 3 nonzero values!\nThey have virtually no statistical power. You may consider filtering them in the analysis!")
+            print("Some features have less than 3 nonzero values!\n"
+                  "They have virtually no statistical power. You may consider filtering them in the analysis!")
 
         ###############################################################################
         # scaling numerical variables
@@ -253,16 +267,11 @@ class LinDA:
         ##############################################################################
         # save models
         for name, mod in models.items():
-            if model_output_path != "" and model_output_path[-1] != "/":
-                full_path = model_output_path + "/" + name
-            else:
-                full_path = model_output_path + name
-            mod.save(full_path)
+            self._models.update({name: mod})
 
         res_intc = res[res.index == "Intercept"]
         base_mean = 2 ** res_intc["Coef."].values
         base_mean = base_mean / np.sum(base_mean) * 1e6
-
         ##############################################################################
         # calculate and adjust pvalues and create output
         output_frames = {}
@@ -306,34 +315,9 @@ class LinDA:
         return {"variables": variables, "biases": biases, "output": output_frames, "feature_data_used": Y,
                 "meta_data_used": Z}
 
-    @staticmethod
-    def read_table(path: str, col: str) -> pd.DataFrame:
-        table: pd.DataFrame = pd.read_csv(path, index_col=col)
-        return table
+    def __init__(self):
+        self._models: dict = {}
 
-    def __init__(self, feature_table: str, metadata_table: str, formula: str, model_path: str, data_name: str,
-                 prev_filter: float, mean_abundance_filter: int, max_abundance_filter: int, feature_type: str,
-                 outlier_pct: float, alpha: float, winsor: bool):
-        self._results = LinDA.trans_linda(LinDA.read_table(feature_table, "ID"),
-                                          LinDA.read_table(metadata_table, "SampleID"),
-                                          formula,
-                                          feature_type,
-                                          data_name,
-                                          model_path,
-                                          prev_filter,
-                                          mean_abundance_filter,
-                                          max_abundance_filter,
-                                          winsor,
-                                          outlier_pct,
-                                          True,
-                                          "pseudo_count",
-                                          0.5,
-                                          0.1,
-                                          "BH",
-                                          alpha,
-                                          1,
-                                          True,
-                                          )
 
-    def get_results(self):
-        return self._results
+    def get_models(self):
+        return self._models

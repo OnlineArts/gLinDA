@@ -11,33 +11,31 @@ class Config:
 
     config: dict = {
         "P2P": {
-            "host":         None,
-            "peers":        [],
-            "password":     None,
-            "verbose":      0,
-            "asymmetric":   True,
-            "solo_mode":    False,
-            "ignore_keys":  False,  # only for internal use
-            "test":         None,   # only for internal use
-            "resolve_host": True,   # only for internal use
+            "host": None,
+            "peers": [],
+            "password": None,
+            "verbose": 0,
+            "asymmetric": True,
+            "solo_mode": False,
+            "ignore_keys": False,  # only for internal use
+            "test": None,  # only for internal use
+            "resolve_host": True,  # only for internal use
         },
         "LINDA": {
-            "formula":              "",
-            "feature_table":        "",
-            "metadata_table":       "",
-            "feature_data_type":    "count",
-            "prevalence":           0.1,
-            "mean_abundance":       0,
-            "max_abundance":        0,
-            "zero_handling":        "pseudo_count",
-            "p_adjustment_method":  "BH",
-            "alpha":                0.05,
-            "outlier_percentage":   0.03,
-            "pseudo_count":         0.5,
-            "correction_cutoff":    0.1,
-            "verbose":              False,
-            "winsor":               True,
-            "adaptive":             True
+            "formula": "",
+            "feature_table": "",
+            "metadata_table": "",
+            "feature_data_type": "count",
+            "prevalence": 0.1,
+            "mean_abundance": 0,
+            "max_abundance": 0,
+            "zero_handling": "pseudo_count",
+            "outlier_percentage": 0.03,
+            "pseudo_count": 0.5,
+            "correction_cutoff": 0.1,
+            "verbose": False,
+            "winsor": True,
+            "adaptive": True
         }
     }
     ip_filter: list = ["localhost", "127.0.0.1", "::1"]
@@ -90,6 +88,13 @@ class Config:
 
         self.config["LINDA"]["winsor"] = self._cast_bool(self.config["LINDA"]["winsor"])
         self.config["LINDA"]["adaptive"] = self._cast_bool(self.config["LINDA"]["adaptive"])
+        self.config["LINDA"]["prevalence"] = self._cast_float(self.config["LINDA"]["prevalence"])
+        self.config["LINDA"]["outlier_percentage"] = self._cast_float(self.config["LINDA"]["outlier_percentage"])
+        self.config["LINDA"]["mean_abundance"] = self._cast_float(self.config["LINDA"]["mean_abundance"])
+        self.config["LINDA"]["max_abundance"] = self._cast_float(self.config["LINDA"]["max_abundance"])
+        self.config["LINDA"]["outlier_percentage"] = self._cast_float(self.config["LINDA"]["outlier_percentage"])
+        self.config["LINDA"]["correction_cutoff"] = self._cast_float(self.config["LINDA"]["correction_cutoff"])
+        self.config["LINDA"]["pseudo_count"] = self._cast_float(self.config["LINDA"]["pseudo_count"])
 
     def __resolve_host(self, include_own_host: bool = False) -> bool:
         """
@@ -165,32 +170,12 @@ class Config:
         """
 
         # LinDA configuration
-        if "alpha" not in self.config["LINDA"] or not self.is_float(self.config["LINDA"]["alpha"]):
-            self.msg = "Config: Alpha does not look like a floating number"
-            print(self.msg)
-            return False
-        elif self.is_float(self.config["LINDA"]["alpha"]) and not (0 < float(self.config["LINDA"]["alpha"]) < 1):
-            self.msg = "Config: Alpha should be bigger than 0 and smaller than 1"
-            print(self.msg)
+        ## Check float range
+        if not self.__check_float("outlier_percentage", lower_bound=0, upper_bound=1):
             return False
 
-        if "outlier_percentage" not in self.config["LINDA"] or not self.is_float(self.config["LINDA"]["outlier_percentage"]):
-            self.msg = "Config: outlier_percentage does not look like a floating number"
-            print(self.msg)
-            return False
-        elif self.is_float(self.config["LINDA"]["outlier_percentage"]) and not (0 < float(self.config["LINDA"]["outlier_percentage"]) < 1):
-            self.msg = "Config: outlier_percentage should be bigger than 0 and smaller than 1"
-            print(self.msg)
-            return False
-
-        if not len(self.config["LINDA"]["feature_table"]) or not os.path.exists(self.config["LINDA"]["feature_table"]):
-            self.msg = "Config: Feature Table data table does not exists"
-            print(self.msg)
-            return False
-
-        if not len(self.config["LINDA"]["metadata_table"]) or not os.path.exists(self.config["LINDA"]["metadata_table"]):
-            self.msg = "Config: Meta data table does not exists"
-            print(self.msg)
+        ## Check paths
+        if not self.__check_path("feature_table") or not self.__check_path("metadata_table"):
             return False
 
         if not len(self.config["LINDA"]["formula"]):
@@ -208,7 +193,8 @@ class Config:
             print(self.msg)
             return False
 
-        if "peers" not in self.config["P2P"] or self.config["P2P"]["peers"] is None or len(self.config["P2P"]["peers"]) == 0:
+        if "peers" not in self.config["P2P"] or self.config["P2P"]["peers"] is None or len(
+                self.config["P2P"]["peers"]) == 0:
             self.msg = "Config: Missing peers. You can not run gLinDA only by yourself."
             print(self.msg)
             return False
@@ -221,7 +207,8 @@ class Config:
                 if not self._is_ip_and_port(peer):
                     return False
 
-        if "host" not in self.config["P2P"] or self.config["P2P"]["host"] is None or len(self.config["P2P"]["host"]) == 0:
+        if "host" not in self.config["P2P"] or self.config["P2P"]["host"] is None or len(
+                self.config["P2P"]["host"]) == 0:
             print("Config: Missing host. You can not run gLinDA without finding or defining your own host address.")
             return False
         elif not self._is_ip_and_port(self.config["P2P"]["host"]):
@@ -245,6 +232,28 @@ class Config:
                     lines += 1
         f.close()
 
+    def __check_path(self, value: str, parent: str = "LINDA") -> bool:
+        if value in self.config[parent] and len(self.config[parent][value]) and os.path.exists(
+                self.config[parent][value]):
+            return True
+        else:
+            self.msg = "Config: %s does not exists" % value
+            print(self.msg)
+            return False
+
+    def __check_float(self, value: str, parent: str = "LINDA", lower_bound: float = 0.0, upper_bound: float = 1.0):
+        if value in self.config[parent] and self.is_float(self.config[parent][value]):
+            if lower_bound < float(self.config[parent][value]) < upper_bound:
+                return True
+            else:
+                self.msg = "Config: %s should be bigger than 0 and smaller than 1" % self.config[parent][value]
+                print(self.msg)
+                return False
+        else:
+            self.msg = "Config: %s does not look like a floating number" % self.config[parent][value]
+            print(self.msg)
+            return False
+
     @staticmethod
     def is_float(value: str) -> bool:
         try:
@@ -257,7 +266,7 @@ class Config:
     def _is_ip_and_port(value: str) -> bool:
         if ":" in value:
             ip = value[:value.rfind(":")]
-            port = value[value.rfind(":")+1:]
+            port = value[value.rfind(":") + 1:]
             if len(ip) and len(port) and port.isnumeric():
                 return True
 

@@ -55,7 +55,179 @@
         <string>Configuration</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="0" column="0" rowspan="2">
+        <property name="leftMargin">
+         <number>8</number>
+        </property>
+        <property name="topMargin">
+         <number>8</number>
+        </property>
+        <property name="rightMargin">
+         <number>8</number>
+        </property>
+        <property name="bottomMargin">
+         <number>8</number>
+        </property>
+        <property name="spacing">
+         <number>5</number>
+        </property>
+        <item row="0" column="1" rowspan="3">
+         <layout class="QVBoxLayout" name="ConfigLINDALayout" stretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
+          <property name="spacing">
+           <number>10</number>
+          </property>
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMinimumSize</enum>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="LindaLabel">
+            <property name="font">
+             <font>
+              <pointsize>13</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+              <kerning>true</kerning>
+             </font>
+            </property>
+            <property name="text">
+             <string>LinDA</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="CovariatesLabel">
+            <property name="text">
+             <string>Linear Formula</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="CovariatesInput"/>
+          </item>
+          <item>
+           <widget class="QLabel" name="DataTablesLabel">
+            <property name="text">
+             <string>Data Tables</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="FeatureDataTableButton">
+            <property name="text">
+             <string>Feature Data</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="MetaDataTableButton">
+            <property name="text">
+             <string>Meta Data</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="FeatureDataTypeLabel">
+            <property name="text">
+             <string>Feature Data Type</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="FeatureDataTypeCombo">
+            <item>
+             <property name="text">
+              <string>count</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>proportion</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="WinsorLabel">
+            <property name="text">
+             <string>Winsor</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="WinsorCombo">
+            <item>
+             <property name="text">
+              <string>Yes</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>No</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="OutlierPctLabel">
+            <property name="text">
+             <string>Expected Outlier Percentage</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="OutlierPctInput">
+            <property name="text">
+             <string>0.03</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="ZeroHandlingLabel">
+            <property name="text">
+             <string>Zero Handling</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="ZeroHandlingInput">
+            <item>
+             <property name="text">
+              <string>adaptive</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>pseudo_count</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>imputation</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item row="0" column="0" rowspan="3">
          <layout class="QVBoxLayout" name="ConfigP2PLayout">
           <property name="spacing">
            <number>10</number>
@@ -177,152 +349,73 @@
           </item>
          </layout>
         </item>
-        <item row="0" column="1" rowspan="2">
-         <layout class="QVBoxLayout" name="ConfigLINDALayout" stretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
+        <item row="2" column="2">
+         <layout class="QVBoxLayout" name="ConfigLINDA2Layout">
           <property name="spacing">
            <number>10</number>
           </property>
-          <property name="sizeConstraint">
-           <enum>QLayout::SetMinimumSize</enum>
-          </property>
-          <property name="rightMargin">
+          <property name="bottomMargin">
            <number>0</number>
           </property>
-          <property name="bottomMargin">
-           <number>35</number>
-          </property>
           <item>
-           <widget class="QLabel" name="LindaLabel">
-            <property name="font">
-             <font>
-              <pointsize>13</pointsize>
-              <weight>75</weight>
-              <bold>true</bold>
-              <kerning>true</kerning>
-             </font>
-            </property>
+           <widget class="QLabel" name="PrevalanceLabel">
             <property name="text">
-             <string>LinDA</string>
+             <string>Prevalence cut-off</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="CovariatesLabel">
+           <widget class="QLineEdit" name="PrevalenceInput">
             <property name="text">
-             <string>Linear Formula</string>
+             <string>0.1</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="CovariatesInput"/>
-          </item>
-          <item>
-           <widget class="QLabel" name="DataTablesLabel">
+           <widget class="QLabel" name="MeanAbundanceLabel">
             <property name="text">
-             <string>Data Tables</string>
+             <string>Mean Abundance</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="FeatureDataTableButton">
+           <widget class="QLineEdit" name="MeanAbundanceInput">
             <property name="text">
-             <string>Feature Data</string>
+             <string>0</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="MetaDataTableButton">
+           <widget class="QLabel" name="MaxAbundanceLabel">
             <property name="text">
-             <string>Meta Data</string>
+             <string>Max Abundance</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="FeatureDataTypeLabel">
+           <widget class="QLineEdit" name="MaxAbundanceInput">
             <property name="text">
-             <string>Feature Data Type</string>
+             <string>0</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QComboBox" name="FeatureDataTypeCombo">
-            <item>
-             <property name="text">
-              <string>count</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>proportion</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="AlphaLabel">
+           <widget class="QLabel" name="CorrectionLabel">
             <property name="text">
-             <string>Alpha</string>
+             <string>Correction cut-off</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="AlphaInput">
+           <widget class="QLineEdit" name="CorrectionInput">
             <property name="text">
-             <string>0.05</string>
+             <string>0.1</string>
             </property>
            </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="WinsorLabel">
-            <property name="text">
-             <string>Winsor</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="WinsorCombo">
-            <item>
-             <property name="text">
-              <string>Yes</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>No</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="OutlierPctLabel">
-            <property name="text">
-             <string>Expected Outlier Percentage</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="OutlierPctInput">
-            <property name="text">
-             <string>0.03</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="verticalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
           </item>
          </layout>
         </item>
-        <item row="0" column="2">
+        <item row="1" column="2">
          <widget class="QLabel" name="Logo">
           <property name="text">
            <string/>
@@ -330,56 +423,10 @@
           <property name="pixmap">
            <pixmap>logo.png</pixmap>
           </property>
+          <property name="scaledContents">
+           <bool>true</bool>
+          </property>
          </widget>
-        </item>
-        <item row="1" column="2">
-         <layout class="QVBoxLayout" name="ConfigLINDA2Layout">
-          <property name="spacing">
-           <number>10</number>
-          </property>
-          <property name="bottomMargin">
-           <number>126</number>
-          </property>
-          <item>
-           <widget class="QLabel" name="ZeroHandlingLabel">
-            <property name="text">
-             <string>Zero Handling</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QComboBox" name="ZeroHandlingInput">
-            <item>
-             <property name="text">
-              <string>adaptive</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>pseudo_count</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>imputation</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item>
-           <spacer name="verticalSpacer_3">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-         </layout>
         </item>
        </layout>
       </widget>
@@ -436,12 +483,12 @@ p, li { white-space: pre-wrap; }
     <item row="1" column="0">
      <layout class="QHBoxLayout" name="BottomBar">
       <property name="sizeConstraint">
-       <enum>QLayout::SetMinimumSize</enum>
+       <enum>QLayout::SetMaximumSize</enum>
       </property>
       <item>
        <widget class="QLabel" name="MessageLabel">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -469,7 +516,7 @@ p, li { white-space: pre-wrap; }
          <bool>false</bool>
         </property>
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -491,7 +538,7 @@ p, li { white-space: pre-wrap; }
       <item>
        <widget class="QPushButton" name="RunButton">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -777,22 +824,6 @@ p, li { white-space: pre-wrap; }
     <hint type="sourcelabel">
      <x>132</x>
      <y>519</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>AlphaInput</sender>
-   <signal>textEdited(QString)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>check_run_btn()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>516</x>
-     <y>373</y>
     </hint>
     <hint type="destinationlabel">
      <x>399</x>

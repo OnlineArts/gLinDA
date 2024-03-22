@@ -1,7 +1,7 @@
 from config import Config
-from p2p import Runner
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
 from os import path
+from gui_worker import gLinDALocalWorker, gLinDAP2PWorker
 import sys
 
 
@@ -49,6 +49,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.covariates: QtWidgets.QLineEdit = self.CovariatesInput
         self.featuredata: QtWidgets.QLineEdit = self.FeatureDataTableButton
         self.metadata: QtWidgets.QLineEdit = self.MetaDataTableButton
+        self.featuretyp: QtWidgets.QComboBox = self.FeatureDataTypeCombo
+        self.winsor: QtWidgets.QComboBox = self.WinsorCombo
+        self.outlier: QtWidgets.QLineEdit = self.OutlierPctInput
+        self.zero_handling: QtWidgets.QComboBox = self.ZeroHandlingInput
+        self.correction: QtWidgets.QLineEdit = self.CorrectionInput
+        self.meanabund: QtWidgets.QLineEdit = self.MeanAbundanceInput
+        self.maxabund: QtWidgets.QLineEdit = self.MaxAbundanceInput
+        self.prev: QtWidgets.QLineEdit = self.PrevalenceInput
 
         # Results tab
         self.ResultText: QtWidgets.QTextBrowser = self.ResultBrowser
@@ -85,7 +93,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self, "Open a feature data table file",
             "", "Table file (*.csv *.CSV *.xls *.XLS)")
         if filename:
-            self.featuredata.setText(path.basename(filename))
+            self.featuredata.setText("Feature Table: %s" % path.basename(filename))
             cfg: dict = self.config.get()
             cfg["LINDA"]["feature_table"] = filename
             self.config.set(cfg)
@@ -96,7 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self, "Open a metadata table file",
             "", "Table file (*.csv *.CSV *.xls *.XLS)")
         if filename:
-            self.metadata.setText(path.basename(filename))
+            self.metadata.setText("Meta Data: %s" % path.basename(filename))
             cfg: dict = self.config.get()
             cfg["LINDA"]["metadata_table"] = filename
             self.config.set(cfg)
@@ -146,11 +154,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if config["LINDA"]["feature_table"] is not None and type(config["LINDA"]["feature_table"]) is str and \
             path.exists(config["LINDA"]["feature_table"]):
-            self.featuredata.setText(path.basename(config["LINDA"]["feature_table"]))
+            self.featuredata.setText("Feature Table: %s" % path.basename(config["LINDA"]["feature_table"]))
 
         if config["LINDA"]["metadata_table"] is not None and type(config["LINDA"]["metadata_table"]) is str and \
             path.exists(config["LINDA"]["metadata_table"]):
-            self.metadata.setText(path.basename(config["LINDA"]["metadata_table"]))
+            self.metadata.setText("Meta Data: %s" % path.basename(config["LINDA"]["metadata_table"]))
+
+        if config["LINDA"]["prevalence"] is not None and type(config["LINDA"]["prevalence"]) is float:
+            self.prev.setText(str(config["LINDA"]["prevalence"]))
+
+        if config["LINDA"]["mean_abundance"] is not None and type(config["LINDA"]["mean_abundance"]) is float:
+            self.meanabund.setText(str(config["LINDA"]["mean_abundance"]))
+
+        if config["LINDA"]["max_abundance"] is not None and type(config["LINDA"]["max_abundance"]) is float:
+            self.maxabund.setText(str(config["LINDA"]["max_abundance"]))
+
+        if config["LINDA"]["outlier_percentage"] is not None and type(config["LINDA"]["outlier_percentage"]) is float:
+            self.outlier.setText(str(config["LINDA"]["outlier_percentage"]))
 
         self.check_run_btn()
 
@@ -216,7 +236,7 @@ class MainWindow(QtWidgets.QMainWindow):
         config["P2P"]["solo_mode"] = self.solo.isChecked()
 
         # LINDA
-        config["LINDA"]["alpha"] = self.AlphaInput.text()
+        #config["LINDA"]["alpha"] = self.AlphaInput.text()
 
         self.config.set(config)
 
@@ -336,6 +356,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.__menu_bar_status(True)
         self.__config_p2p_fields_status(True)
         self.__config_linda_fields_status(True)
+        self.solo_mode()
         self.Progress.hide()
 
     def worker_progress_update(self, val: int):
@@ -382,80 +403,6 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.__config_p2p_fields_status(True)
         self.check_run_btn()
-
-
-class gLinDALocalWorker(QtCore.QObject):
-    """
-    This object will run in a separate thread, containing the actual gLinDA execution
-    """
-
-    # These are Signals that communicate with the main GUI object thread
-    finished = QtCore.pyqtSignal()
-    progress = QtCore.pyqtSignal(int)
-    results = QtCore.pyqtSignal(object)
-
-    def set_config(self, config: dict):
-        """
-        Sets the configuration
-        :param config: a dictionary with all configurations
-        """
-        self.config = config
-
-    def run(self):
-        from linda import LinDA
-        cfg: dict = self.config["LINDA"]
-        self.progress.emit(0)
-        linda = LinDA(cfg["feature_table"],
-                      cfg["metadata_table"],
-                      cfg["formula"],
-                      "/home/roman/test_models",
-                      "Smoke",
-                      cfg["prevalence"],
-                      cfg["mean_abundance"],
-                      cfg["max_abundance"],
-                      cfg["feature_data_type"],
-                      cfg["outlier_percentage"],
-                      cfg["alpha"],
-                      cfg["winsor"])
-        self.progress.emit(2)
-        self.results.emit(linda.get_results())
-        self.finished.emit()
-
-
-class gLinDAP2PWorker(QtCore.QObject):
-    """
-    This object will run in a separate thread, containing the actual gLinDA execution
-    """
-
-    # These are Signals that communicate with the main GUI object thread
-    finished = QtCore.pyqtSignal()
-    progress = QtCore.pyqtSignal(int)
-    results = QtCore.pyqtSignal(object)
-
-    def set_config(self, config: dict):
-        """
-        Sets the configuration
-        :param config: a dictionary with all configurations
-        """
-        self.config = config
-
-    def run(self):
-        """
-        Performs the P2P demo execution
-        :return:
-        """
-        import random
-
-        p2p = Runner(self.config["P2P"])
-        self.progress.emit(0)
-        strings = p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
-        print(strings)
-        self.progress.emit(1)
-        my_msg = {"A %d" % random.randint(0, 9): "B %d" % random.randint(0, 9)}
-        dicts = p2p.broadcast_obj(my_msg)
-        self.progress.emit(2)
-        self.results.emit("Own message: %s, received: %s" % (my_msg, dicts))
-        self.finished.emit()
 
 
 def main():
