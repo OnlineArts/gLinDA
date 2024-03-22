@@ -371,7 +371,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Tabs.setTabVisible(1, True)
         self.Tabs.setCurrentIndex(1)
         self.ResultText.setEnabled(True)
-        print(self.ResultText.isEnabled())
         self.ResultText.setText(str(result))
 
     def solo_mode(self):
