@@ -73,7 +73,7 @@ class P2P:
     min_rand: int = 1000000
     max_rand: int = 9999999
     bytes_len: int = 3
-    waiting_time: int = 2
+    waiting_time: int = 1
     chunk_size: int = 1024000
     symmetric = False
 
@@ -100,6 +100,7 @@ class P2P:
 
     def set_waiting_time(self, waiting_time: int):
         self.waiting_time = waiting_time
+
 
 class EncryptionSymmetric:
 
