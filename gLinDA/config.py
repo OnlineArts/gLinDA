@@ -26,7 +26,7 @@ class Config:
             "feature_table":        "",
             "metadata_table":       "",
             "feature_data_type":    "count",
-            "prevalence":           0,
+            "prevalence":           0.1,
             "mean_abundance":       0,
             "max_abundance":        0,
             "zero_handling":        "pseudo_count",

@@ -4,6 +4,7 @@ from PyQt6 import QtWidgets, QtCore, uic, QtGui
 from os import path
 import sys
 
+
 class MainWindow(QtWidgets.QMainWindow):
 
     peer_fields: int = 5
@@ -17,7 +18,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # P2P and threading
         self.thread = QtCore.QThread()
-        self.worker = gLinDAWorker()
+        self.worker = gLinDAP2PWorker()
 
         # gLinDA Configuration
         self.config: Config = Config(check_sanity=False)
@@ -50,7 +51,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.metadata: QtWidgets.QLineEdit = self.MetaDataTableButton
 
         # Results tab
-        self.ResultText: QtWidgets.QTextBrowser = self.ResultLabel
+        self.ResultText: QtWidgets.QTextBrowser = self.ResultBrowser
 
         # Footer
         self.Message: QtWidgets.QLabel = self.MessageLabel
@@ -64,7 +65,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Tabs.setTabVisible(1, False)  # Index 1: Results
         self.Save.setEnabled(False)
         self.Export.setEnabled(False)
-        self.rsa.setChecked(True)
+        # until debugged
+        self.rsa.setChecked(False)
+        self.rsa.setEnabled(False)
+        self.aes.setChecked(True)
 
     def load_configuration_file(self):
         """
@@ -97,9 +101,6 @@ class MainWindow(QtWidgets.QMainWindow):
             cfg["LINDA"]["metadata_table"] = filename
             self.config.set(cfg)
             self.check_run_btn()
-
-    def hover_run_button(self):
-        print("here!")
 
     def __import_config_file(self, config_path: str):
         """
@@ -234,6 +235,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __config_linda_fields_status(self, status: bool = False):
         self.covariates.setEnabled(status)
+        self.featuredata.setEnabled(status)
+        self.metadata.setEnabled(status)
 
     def __menu_bar_status(self, status: bool = False):
         """
@@ -271,7 +274,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Preparing Threading an P2P network
         self.thread = QtCore.QThread()  # refresh the threads (they got deleted after each round)
-        self.worker = gLinDAWorker()  # same here
+        self.worker = gLinDAP2PWorker()  # same here
 
         self.worker.set_config(self.config.get())  # Sets the configuration
         self.worker.moveToThread(self.thread)
@@ -293,8 +296,38 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Triggers the gLinDA solo mode execution in a separated thread
         """
-        # placeholder #
-        pass
+        """
+        Triggers the gLinDA execution in a separated thread
+        """
+        self.__update_config()
+        self.Message.setText("Run local LinDA")
+        self.__config_p2p_fields_status(False)
+        self.__config_linda_fields_status(False)
+        self.__menu_bar_status(False)
+
+        # Show up progress bar
+        self.Progress.show()
+        self.Progress.setValue(0)
+
+        # Preparing Threading for LinDA
+        self.thread = QtCore.QThread()  # refresh the threads (they got deleted after each round)
+        self.worker = gLinDALocalWorker()  # same here
+
+        self.worker.set_config(self.config.get())  # Sets the configuration
+        self.worker.moveToThread(self.thread)
+
+        # Defines the callback functions for the threads and workers
+        self.thread.started.connect(self.worker.run)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+        self.worker.finished.connect(self.worker_finished)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.worker.progress.connect(self.worker_progress_update)
+        self.worker.results.connect(self.worker_results_presentation)
+
+        # Starts all threads
+        self.thread.start()
 
     def worker_finished(self):
         """
@@ -310,16 +343,25 @@ class MainWindow(QtWidgets.QMainWindow):
         Updates the current progress state
         :param val: integer indicate the current state
         """
-        if val == 0:
-            self.Progress.setValue(33)
-            self.Message.setText("Broadcast strings")
-        elif val == 1:
-            self.Progress.setValue(66)
-            self.Message.setText("Broadcast dictionaries")
-        elif val == 2:
-            self.Progress.setValue(100)
-            self.Tabs.setTabVisible(1, True)
-            self.Message.setText("Finished")
+        if self.config.get()["P2P"]["solo_mode"]:
+            if val == 0:
+                self.Progress.setValue(50)
+                self.Message.setText("Building models")
+            elif val == 2:
+                self.Progress.setValue(100)
+                self.Message.setText("Finished")
+
+        else:
+            if val == 0:
+                self.Progress.setValue(33)
+                self.Message.setText("Broadcast strings")
+            elif val == 1:
+                self.Progress.setValue(66)
+                self.Message.setText("Broadcast dictionaries")
+            elif val == 2:
+                self.Progress.setValue(100)
+                self.Tabs.setTabVisible(1, True)
+                self.Message.setText("Finished")
 
     def worker_results_presentation(self, result: object):
         """
@@ -328,6 +370,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         self.Tabs.setTabVisible(1, True)
         self.Tabs.setCurrentIndex(1)
+        self.ResultText.setEnabled(True)
+        print(self.ResultText.isEnabled())
         self.ResultText.setText(str(result))
 
     def solo_mode(self):
@@ -341,7 +385,45 @@ class MainWindow(QtWidgets.QMainWindow):
         self.check_run_btn()
 
 
-class gLinDAWorker(QtCore.QObject):
+class gLinDALocalWorker(QtCore.QObject):
+    """
+    This object will run in a separate thread, containing the actual gLinDA execution
+    """
+
+    # These are Signals that communicate with the main GUI object thread
+    finished = QtCore.pyqtSignal()
+    progress = QtCore.pyqtSignal(int)
+    results = QtCore.pyqtSignal(object)
+
+    def set_config(self, config: dict):
+        """
+        Sets the configuration
+        :param config: a dictionary with all configurations
+        """
+        self.config = config
+
+    def run(self):
+        from linda import LinDA
+        cfg: dict = self.config["LINDA"]
+        self.progress.emit(0)
+        linda = LinDA(cfg["feature_table"],
+                      cfg["metadata_table"],
+                      cfg["formula"],
+                      "/home/roman/test_models",
+                      "Smoke",
+                      cfg["prevalence"],
+                      cfg["mean_abundance"],
+                      cfg["max_abundance"],
+                      cfg["feature_data_type"],
+                      cfg["outlier_percentage"],
+                      cfg["alpha"],
+                      cfg["winsor"])
+        self.progress.emit(2)
+        self.results.emit(linda.get_results())
+        self.finished.emit()
+
+
+class gLinDAP2PWorker(QtCore.QObject):
     """
     This object will run in a separate thread, containing the actual gLinDA execution
     """
@@ -370,11 +452,10 @@ class gLinDAWorker(QtCore.QObject):
         strings = p2p.broadcast_str("Test Message: %s" % random.randint(10, 99))
         print(strings)
         self.progress.emit(1)
-        my_msg = {"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)}
+        my_msg = {"A %d" % random.randint(0, 9): "B %d" % random.randint(0, 9)}
         dicts = p2p.broadcast_obj(my_msg)
         self.progress.emit(2)
-        self.results.emit("own message: %s, received: %s" % (my_msg, dicts))
-
+        self.results.emit("Own message: %s, received: %s" % (my_msg, dicts))
         self.finished.emit()
 
 

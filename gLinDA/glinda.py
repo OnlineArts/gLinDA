@@ -30,7 +30,7 @@ class Wrapper:
         print("Received messages: %s" % broadcast)
 
         # Broadcast a dictionary as an object
-        my_dictionary: dict = {"OK %d" % random.randint(0, 9): "V %d" % random.randint(0, 9)}
+        my_dictionary: dict = {"A %d" % random.randint(0, 9): "B %d" % random.randint(0, 9)}
         broadcast = self.__p2p.broadcast_obj(my_dictionary)
         print("My dictionary: %s" % my_dictionary)
         print("Received messages: %s" % broadcast)
