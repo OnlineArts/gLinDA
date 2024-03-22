@@ -4,6 +4,10 @@ from os import path
 from gui_worker import gLinDALocalWorker, gLinDAP2PWorker
 import sys
 
+__version__ = "1.0.0"
+__author__ = 'Roman Martin'
+__credits__ = 'Heinrich Heine University Duesseldorf'
+
 
 class MainWindow(QtWidgets.QMainWindow):
 
@@ -115,8 +119,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Import a configuration file and update the configuration fields.
         :param config_path: path to the INI configuration file.
         """
-
-        ## P2P
+        # P2P
         self.config: Config = Config(ini_path=config_path, check_sanity=False)
         config = self.config.get()
 
@@ -144,12 +147,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.aes.setChecked(True)
                 self.rsa.setChecked(False)
 
-        if config["P2P"]["solo_mode"] is not None and type(config["P2P"]["solo_mode"]) is bool:
-            self.solo.setChecked(config["P2P"]["solo_mode"])
-            self.solo_mode()
-
-        ## LINDA
-        if config["LINDA"]["formula"] is not None and type(config["LINDA"]["formula"]) is str and len(config["LINDA"]["formula"]):
+        # LINDA
+        if (config["LINDA"]["formula"] is not None and type(config["LINDA"]["formula"]) is str
+                and len(config["LINDA"]["formula"])):
             self.covariates.setText(config["LINDA"]["formula"])
 
         if config["LINDA"]["feature_table"] is not None and type(config["LINDA"]["feature_table"]) is str and \
@@ -160,19 +160,26 @@ class MainWindow(QtWidgets.QMainWindow):
             path.exists(config["LINDA"]["metadata_table"]):
             self.metadata.setText("Meta Data: %s" % path.basename(config["LINDA"]["metadata_table"]))
 
-        if config["LINDA"]["prevalence"] is not None and type(config["LINDA"]["prevalence"]) is float:
+        if config["LINDA"]["prevalence"] is not None:
             self.prev.setText(str(config["LINDA"]["prevalence"]))
 
-        if config["LINDA"]["mean_abundance"] is not None and type(config["LINDA"]["mean_abundance"]) is float:
+        if config["LINDA"]["mean_abundance"] is not None and len(str(config["LINDA"]["mean_abundance"])):
             self.meanabund.setText(str(config["LINDA"]["mean_abundance"]))
 
-        if config["LINDA"]["max_abundance"] is not None and type(config["LINDA"]["max_abundance"]) is float:
+        if config["LINDA"]["max_abundance"] is not None and len(str(config["LINDA"]["max_abundance"])):
             self.maxabund.setText(str(config["LINDA"]["max_abundance"]))
 
-        if config["LINDA"]["outlier_percentage"] is not None and type(config["LINDA"]["outlier_percentage"]) is float:
+        if config["LINDA"]["outlier_percentage"] is not None and len(str(config["LINDA"]["outlier_percentage"])):
             self.outlier.setText(str(config["LINDA"]["outlier_percentage"]))
 
-        self.check_run_btn()
+        if config["LINDA"]["correction_cutoff"] is not None and len(str(config["LINDA"]["correction_cutoff"])):
+            self.correction.setText(str(config["LINDA"]["correction_cutoff"]))
+
+        # Have to be the last otherwise artefacts will occur
+        if config["P2P"]["solo_mode"] is not None and type(config["P2P"]["solo_mode"]) is bool:
+            self.solo.setChecked(config["P2P"]["solo_mode"])
+            if self.solo.isChecked:
+                self.solo_mode()
 
     def save_config(self):
         """
@@ -236,7 +243,14 @@ class MainWindow(QtWidgets.QMainWindow):
         config["P2P"]["solo_mode"] = self.solo.isChecked()
 
         # LINDA
-        #config["LINDA"]["alpha"] = self.AlphaInput.text()
+        if len(self.covariates.text()):
+            config["LINDA"]["formula"] = self.covariates.text()
+        config["LINDA"]["prevalence"] = self.prev.text()
+
+        config["LINDA"]["mean_abundance"] = self.meanabund.text()
+        config["LINDA"]["max_abundance"] = self.maxabund.text()
+        config["LINDA"]["outlier_percentage"] = self.outlier.text()
+        config["LINDA"]["correction_cutoff"] = self.correction.text()
 
         self.config.set(config)
 
@@ -272,6 +286,9 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Triggers the gLinDA P2P or Solo Mode execution
         """
+        self.__update_config()
+        self.config.cast_parameters()
+
         if self.solo.isChecked():
             # Solo mode
             self._run_solo_gLinDA()  # placeholder currently
@@ -282,7 +299,6 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Triggers the gLinDA execution in a separated thread
         """
-        self.__update_config()
         self.Message.setText("Waiting for all peers")
         self.__config_p2p_fields_status(False)
         self.__config_linda_fields_status(False)
@@ -319,7 +335,6 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Triggers the gLinDA execution in a separated thread
         """
-        self.__update_config()
         self.Message.setText("Run local LinDA")
         self.__config_p2p_fields_status(False)
         self.__config_linda_fields_status(False)

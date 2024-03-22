@@ -1,4 +1,3 @@
-import time
 from pickle import loads, dumps
 from threading import Thread, Event
 from copy import deepcopy
@@ -9,13 +8,13 @@ from Crypto.PublicKey import RSA
 from Crypto.Util.Padding import pad, unpad
 
 """
-gLinDAP2P
+P2P
 
 This parent package carries all required code for the peer-to-peer network, including the multi-threaded 
 implementation and all cryptographic-related handling.
 """
 
-__version__ = "0.9.0"
+__version__ = "1.0.0"
 __author__ = 'Roman Martin'
 __credits__ = 'Heinrich Heine University Duesseldorf'
 
@@ -73,7 +72,7 @@ class P2P:
     min_rand: int = 1000000
     max_rand: int = 9999999
     bytes_len: int = 3
-    waiting_time: int = 1
+    waiting_time: int = 2
     chunk_size: int = 1024000
     symmetric = False
 
@@ -136,7 +135,7 @@ class EncryptionSymmetric:
         unpadded = None
         try:
             unpadded = unpad(data, AES.block_size)
-        except ValueError as ex:
+        except ValueError:
             print("Crypto: Padding failed, probably wrong key?")
             if not self.config["ignore_keys"]:
                 exit(201)

@@ -1,4 +1,4 @@
-#!/bin/env python3
+from errors import LindaNoValues, LindaInternalError
 import pandas as pd
 import numpy as np
 import statsmodels.formula.api as smf
@@ -6,6 +6,10 @@ import statsmodels.stats.multitest as mult
 import math
 import scipy as sp
 from io import StringIO
+
+__version__ = "1.0.0"
+__author__ = 'Leon Fehse'
+__credits__ = 'Heinrich Heine University Duesseldorf'
 
 
 class LinDA:
@@ -104,7 +108,7 @@ class LinDA:
                 except ValueError:
                     continue
 
-        return table
+        raise ValueError("Could not identify the index columns")
 
     def linda(self,
               feature_dat: pd.DataFrame, meta_dat: pd.DataFrame, formula: str, feature_dat_type: str = 'count',
@@ -114,7 +118,8 @@ class LinDA:
               verbose: bool = True) -> dict:
 
         if feature_dat.isnull().values.any():
-            raise Exception("The feature table contains NAs! Please remove!\n")
+            raise LinDANAs("The feature table contains NAs! Please remove!\n")
+
         delims = ["+", "~"]
         all_var_formula = formula
         for delim in delims:
@@ -141,13 +146,16 @@ class LinDA:
         n = len(Y.columns.values)
         m = len(Y.index.values)
 
-        if (Y.sum(axis=0) == 0).any():
-            ind = Y.sum(axis=0) == 0
-            Y = Y[ind]
-            Z = Z[ind]
-            Z.columns = all_var
-            keep_sam = keep_sam[ind]
-            n = len(Y.colu)
+        try:
+            if (Y.sum(axis=0) == 0).any():
+                ind = Y.sum(axis=0) == 0
+                Y = Y[ind]
+                Z = Z[ind]
+                Z.columns = all_var
+                keep_sam = keep_sam[ind]
+                n = len(Y.colu)
+        except AttributeError:
+            raise LindaNoValues("The feature dataframe is empty after filtering!")
 
         if verbose:
             print(f"The filtered data has {n} samples and {m} features will be tested")
@@ -229,7 +237,6 @@ class LinDA:
         W = logY - logY.mean(axis=0)
         W = W.T
         W = W.apply(pd.to_numeric)
-
         ##############################################################################
         # model fitting
         if not random_effect:
@@ -315,9 +322,20 @@ class LinDA:
         return {"variables": variables, "biases": biases, "output": output_frames, "feature_data_used": Y,
                 "meta_data_used": Z}
 
+    def run(self, feature_dat: pd.DataFrame, meta_dat: pd.DataFrame, formula: str, feature_dat_type: str = 'count',
+              data_name: str = "", prev_filter: float = 0.0,  mean_abund_filter: float = 0,
+              max_abund_filter: float = 0, is_winsor: bool = True, outlier_pct: float = 0.03, adaptive: bool = True,
+              zero_handling: str = 'pseudo_count', pseudo_count: float = 0.5, corr_cut: float = 0.1,
+              verbose: bool = True) -> dict:
+        try:
+            return self.linda(feature_dat, meta_dat, formula, feature_dat_type, data_name, prev_filter, mean_abund_filter,
+                       max_abund_filter, is_winsor, outlier_pct, adaptive, zero_handling, pseudo_count, corr_cut,
+                       verbose)
+        except Exception as e:
+            raise LindaInternalError(e)
+
     def __init__(self):
         self._models: dict = {}
-
 
     def get_models(self):
         return self._models

@@ -89,10 +89,10 @@ class Config:
         self.config["LINDA"]["winsor"] = self._cast_bool(self.config["LINDA"]["winsor"])
         self.config["LINDA"]["adaptive"] = self._cast_bool(self.config["LINDA"]["adaptive"])
         self.config["LINDA"]["prevalence"] = self._cast_float(self.config["LINDA"]["prevalence"])
+
         self.config["LINDA"]["outlier_percentage"] = self._cast_float(self.config["LINDA"]["outlier_percentage"])
         self.config["LINDA"]["mean_abundance"] = self._cast_float(self.config["LINDA"]["mean_abundance"])
         self.config["LINDA"]["max_abundance"] = self._cast_float(self.config["LINDA"]["max_abundance"])
-        self.config["LINDA"]["outlier_percentage"] = self._cast_float(self.config["LINDA"]["outlier_percentage"])
         self.config["LINDA"]["correction_cutoff"] = self._cast_float(self.config["LINDA"]["correction_cutoff"])
         self.config["LINDA"]["pseudo_count"] = self._cast_float(self.config["LINDA"]["pseudo_count"])
 
@@ -170,12 +170,27 @@ class Config:
         """
 
         # LinDA configuration
-        ## Check float range
-        if not self.__check_float("outlier_percentage", lower_bound=0, upper_bound=1):
+        # Check float range
+        if not self.__check_float("outlier_percentage"):
             return False
 
-        ## Check paths
-        if not self.__check_path("feature_table") or not self.__check_path("metadata_table"):
+        if not self.__check_float("prevalence"):
+            return False
+
+        if not self.__check_float("mean_abundance"):
+            return False
+
+        if not self.__check_float("max_abundance"):
+            return False
+
+        if not self.__check_float("correction_cutoff"):
+            return False
+
+        # Check paths
+        if not self.__check_path("feature_table"):
+            return False
+
+        if not self.__check_path("metadata_table"):
             return False
 
         if not len(self.config["LINDA"]["formula"]):
@@ -184,7 +199,7 @@ class Config:
             return False
 
         # P2P configuration
-        ## Solo Mode
+        # Solo Mode
         if self.config["P2P"]["solo_mode"] is not None and self.config["P2P"]["solo_mode"]:
             return True
 
@@ -243,14 +258,16 @@ class Config:
 
     def __check_float(self, value: str, parent: str = "LINDA", lower_bound: float = 0.0, upper_bound: float = 1.0):
         if value in self.config[parent] and self.is_float(self.config[parent][value]):
-            if lower_bound < float(self.config[parent][value]) < upper_bound:
+            if lower_bound <= float(self.config[parent][value]) <= upper_bound:
                 return True
             else:
-                self.msg = "Config: %s should be bigger than 0 and smaller than 1" % self.config[parent][value]
+                self.msg = ("Config: %s (%s) should be bigger than 0 and smaller than 1" %
+                            (value, self.config[parent][value]))
                 print(self.msg)
                 return False
         else:
-            self.msg = "Config: %s does not look like a floating number" % self.config[parent][value]
+            self.msg = ("Config: %s (%s) does not look like a floating number" %
+                        (value, self.config[parent][value]))
             print(self.msg)
             return False
 

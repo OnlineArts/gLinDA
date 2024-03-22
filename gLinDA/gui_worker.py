@@ -1,3 +1,4 @@
+from errors import LindaInternalError, GlindaP2PError
 from p2p import Runner
 from PyQt6 import QtCore
 
@@ -24,26 +25,33 @@ class gLinDALocalWorker(QtCore.QObject):
         cfg: dict = self.config["LINDA"]
         self.progress.emit(0)
         linda = LinDA()
-        results = linda.linda(
-            LinDA.read_table(cfg["feature_table"]),
-            LinDA.read_table(cfg["metadata_table"]),
-            cfg["formula"],
-            cfg["feature_data_type"],
-            "name",
-            cfg["prevalence"],
-            cfg["mean_abundance"],
-            cfg["max_abundance"],
-            cfg["winsor"],
-            cfg["outlier_percentage"],
-            cfg["adaptive"],
-            cfg["zero_handling"],
-            cfg["pseudo_count"],
-            cfg["correction_cutoff"],
-            cfg["verbose"]
-        )
-        self.progress.emit(2)
-        self.results.emit(results)
-        self.finished.emit()
+        results: dict = {}
+
+        try:
+            results = linda.run(
+                LinDA.read_table(cfg["feature_table"]),
+                LinDA.read_table(cfg["metadata_table"]),
+                cfg["formula"],
+                cfg["feature_data_type"],
+                "name",
+                cfg["prevalence"],
+                cfg["mean_abundance"],
+                cfg["max_abundance"],
+                cfg["winsor"],
+                cfg["outlier_percentage"],
+                cfg["adaptive"],
+                cfg["zero_handling"],
+                cfg["pseudo_count"],
+                cfg["correction_cutoff"],
+                cfg["verbose"]
+            )
+        except LindaInternalError as e:
+            results: dict = {"ERROR": e}
+            raise GlindaP2PError(e)
+        finally:
+            self.progress.emit(2)
+            self.results.emit(results)
+            self.finished.emit()
 
 
 class gLinDAP2PWorker(QtCore.QObject):

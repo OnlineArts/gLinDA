@@ -55,9 +55,10 @@ class Client(P2P):
                         s.close()
                     except ConnectionRefusedError as e:
                         if self.verbose >= 1:
-                            print("Client: Are you sure the peer %s is reachable? Retry in %d s" % (peer, super().waiting_time))
+                            print("Client: Are you sure the peer %s is reachable? Retry in %d s" %
+                                  (peer, super().waiting_time))
                         time.sleep(super().waiting_time)
-                        super().set_waiting_time(super().waiting_time+0.5)
+                        super().set_waiting_time(super().waiting_time+1)
                     except Exception as e:
                         print(e)
         time.sleep(super().waiting_time)  # Test, wait after sending
@@ -103,7 +104,8 @@ class Client(P2P):
                         else:
                             if self.verbose >= 1:
                                 print("Client: Encrypted communication was successful")
-                            self.keyring.add_peer(peer, (confirmation_number, answer[self.bytes_len:]), False)
+                            self.keyring.add_peer(peer, (confirmation_number, answer[self.bytes_len:]),
+                                                  False)
 
                         s.close()
                     except ConnectionRefusedError as e:
@@ -111,7 +113,7 @@ class Client(P2P):
                             print("Client: Are you sure the peer %s is reachable? Retry in %d s" % (
                             peer, super().waiting_time))
                         time.sleep(super().waiting_time)
-                        super().set_waiting_time(super().waiting_time+0.5)
+                        super().set_waiting_time(super().waiting_time+1)
                     except Exception as e:
                         print(e)
         except KeyboardInterrupt as e:

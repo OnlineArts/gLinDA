@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>600</height>
+    <height>590</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -19,13 +19,13 @@
   <property name="minimumSize">
    <size>
     <width>800</width>
-    <height>600</height>
+    <height>590</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>800</width>
-    <height>600</height>
+    <height>590</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -45,6 +45,21 @@
     </size>
    </property>
    <layout class="QGridLayout" name="gridLayout_3">
+    <property name="leftMargin">
+     <number>10</number>
+    </property>
+    <property name="topMargin">
+     <number>10</number>
+    </property>
+    <property name="rightMargin">
+     <number>10</number>
+    </property>
+    <property name="bottomMargin">
+     <number>10</number>
+    </property>
+    <property name="spacing">
+     <number>10</number>
+    </property>
     <item row="0" column="0">
      <widget class="QTabWidget" name="TabWidget">
       <property name="currentIndex">
@@ -73,7 +88,7 @@
         <item row="0" column="1" rowspan="3">
          <layout class="QVBoxLayout" name="ConfigLINDALayout" stretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0">
           <property name="spacing">
-           <number>10</number>
+           <number>8</number>
           </property>
           <property name="sizeConstraint">
            <enum>QLayout::SetMinimumSize</enum>
@@ -230,7 +245,7 @@
         <item row="0" column="0" rowspan="3">
          <layout class="QVBoxLayout" name="ConfigP2PLayout">
           <property name="spacing">
-           <number>10</number>
+           <number>8</number>
           </property>
           <property name="sizeConstraint">
            <enum>QLayout::SetDefaultConstraint</enum>
@@ -352,7 +367,7 @@
         <item row="2" column="2">
          <layout class="QVBoxLayout" name="ConfigLINDA2Layout">
           <property name="spacing">
-           <number>10</number>
+           <number>8</number>
           </property>
           <property name="bottomMargin">
            <number>0</number>
@@ -367,7 +382,7 @@
           <item>
            <widget class="QLineEdit" name="PrevalenceInput">
             <property name="text">
-             <string>0.1</string>
+             <string>0.0</string>
             </property>
            </widget>
           </item>
@@ -381,7 +396,7 @@
           <item>
            <widget class="QLineEdit" name="MeanAbundanceInput">
             <property name="text">
-             <string>0</string>
+             <string>0.0</string>
             </property>
            </widget>
           </item>
@@ -395,7 +410,7 @@
           <item>
            <widget class="QLineEdit" name="MaxAbundanceInput">
             <property name="text">
-             <string>0</string>
+             <string>0.0</string>
             </property>
            </widget>
           </item>
@@ -412,6 +427,19 @@
              <string>0.1</string>
             </property>
            </widget>
+          </item>
+          <item>
+           <spacer name="Spacer3">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </item>
@@ -482,6 +510,9 @@ p, li { white-space: pre-wrap; }
     </item>
     <item row="1" column="0">
      <layout class="QHBoxLayout" name="BottomBar">
+      <property name="spacing">
+       <number>10</number>
+      </property>
       <property name="sizeConstraint">
        <enum>QLayout::SetMaximumSize</enum>
       </property>
@@ -516,7 +547,7 @@ p, li { white-space: pre-wrap; }
          <bool>false</bool>
         </property>
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -538,10 +569,16 @@ p, li { white-space: pre-wrap; }
       <item>
        <widget class="QPushButton" name="RunButton">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
         </property>
         <property name="text">
          <string>Run!</string>
@@ -876,6 +913,86 @@ p, li { white-space: pre-wrap; }
     <hint type="destinationlabel">
      <x>399</x>
      <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>CovariatesInput</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>check_run_btn()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>395</x>
+     <y>135</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>294</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>OutlierPctInput</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>check_run_btn()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>395</x>
+     <y>400</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>294</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>PrevalenceInput</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>check_run_btn()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>651</x>
+     <y>343</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>294</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>MeanAbundanceInput</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>check_run_btn()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>651</x>
+     <y>401</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>294</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>CorrectionInput</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>check_run_btn()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>651</x>
+     <y>517</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>294</y>
     </hint>
    </hints>
   </connection>

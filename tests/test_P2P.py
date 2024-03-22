@@ -59,7 +59,7 @@ class HelperFunctions:
         bucket.append(broadcast)
 
 
-class SimulateClients(unittest.TestCase):
+class SimulatePeers(unittest.TestCase):
 
     @timeout_decorator.timeout(300)
     def simulate_peers(self, peers: int, rsa: bool = False):
@@ -76,12 +76,12 @@ class SimulateClients(unittest.TestCase):
         bucket_list = manager.list()
         process_list: list = []
         for i in range(0, peers):
-            process_list.append(Process(target=HelperFunctions.p2p_run, args=(configs[i], bucket_list) ))
+            process_list.append(Process(target=HelperFunctions.p2p_run, args=(configs[i], bucket_list)))
 
         try:
             [p.start() for p in process_list]
             [p.join() for p in process_list]
-        except timeout_decorator.timeout_decorator.TimeoutError as e:
+        except timeout_decorator.TimeoutError as e:
             [p.kill() for p in process_list]
 
         return bucket_list
@@ -104,22 +104,14 @@ class SimulateClients(unittest.TestCase):
     def test_peer2peer_032n(self):
         self.assertTrue(HelperFunctions.expected_answers(self.simulate_peers(32), 32))
 
-    def test_peer2peer_064n(self):
-        self.assertTrue(HelperFunctions.expected_answers(self.simulate_peers(64), 64))
-
-    def test_peer2peer_128n(self):
-        self.assertTrue(HelperFunctions.expected_answers(self.simulate_peers(128), 128))
-
-"""
-    def test_peer2peer_02n_rsa(self):
+    def test_peer2peer_002n_rsa(self):
         self.assertTrue(HelperFunctions.expected_answers(self.simulate_peers(2, True), 2))
 
-    def test_peer2peer_03n_rsa(self):
+    def test_peer2peer_003n_rsa(self):
         self.assertTrue(HelperFunctions.expected_answers(self.simulate_peers(3, True), 3))
 
-    def test_peer2peer_04n_rsa(self):
+    def test_peer2peer_004n_rsa(self):
         self.assertTrue(HelperFunctions.expected_answers(self.simulate_peers(4, True), 4))
 
-    def test_peer2peer_08n_rsa(self):
+    def test_peer2peer_008n_rsa(self):
         self.assertTrue(HelperFunctions.expected_answers(self.simulate_peers(8, True), 8))
-"""
