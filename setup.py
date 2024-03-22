@@ -15,7 +15,7 @@ setup(
     license='BSD 3-clause',
     packages=['gLinDA'],
     install_requires=["psutil", "pycryptodome", "PyQt6", "pandas", "numpy"
-                      "statsmodels", "matplotlib", "seaborn", "scipy"],
+                      "statsmodels", "matplotlib", "seaborn", "scipy", "timeout_decorator"],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Science/Research',
