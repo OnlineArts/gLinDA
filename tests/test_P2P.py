@@ -63,7 +63,7 @@ class SimulatePeers(unittest.TestCase):
 
     @timeout_decorator.timeout(300)
     def simulate_peers(self, peers: int, rsa: bool = False):
-        general_param: dict = {"password": "Test", "verbose": 2}
+        general_param: dict = {"password": "Test", "verbose": 3}
 
         # Enable RSA
         if rsa:

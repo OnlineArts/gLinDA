@@ -12,12 +12,18 @@ class Wrapper:
 
     def __init__(self, arguments: ArgumentParser):
         self.config = Config(arguments).get()
-        self.__p2p = Runner(self.config["P2P"])
 
-        # Ready to use from here
-        self._example_workflow()
+        if ("solo_mode" in self.config["P2P"] and self.config["P2P"]["solo_mode"]) or elf.config["P2P"]["host"] is None:
+            self._example_solo_workflow()
+        else:
+            self.__p2p = Runner(self.config["P2P"])
+            self._example_p2p_workflow()
 
-    def _example_workflow(self):
+    def _example_solo_workflow(self):
+        print("Solo Mode: Hi, I'm lonely there")
+        print(self.config["LINDA"])
+
+    def _example_p2p_workflow(self):
         """
         A minimal example demonstrating how to send and receive values
         """
@@ -42,8 +48,7 @@ def main():
     """
     parser = ArgumentParser()
     parser.add_argument("--host", help="The own host address and port")
-    parser.add_argument("-pw", "--password", type=str,
-                        help="Mandatory password for communication")
+    parser.add_argument("-pw", "--password", type=str, help="Mandatory password for communication")
     parser.add_argument("-p", "--peers", nargs="+",
                         help="A list with peer addresses and ports, e.g. localhost:5000 localhost:5001")
     parser.add_argument("-t", "--test", type=str, help="Developers")
