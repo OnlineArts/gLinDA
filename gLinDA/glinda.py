@@ -13,7 +13,7 @@ class Wrapper:
     def __init__(self, arguments: ArgumentParser):
         self.config = Config(arguments).get()
 
-        if ("solo_mode" in self.config["P2P"] and self.config["P2P"]["solo_mode"]) or elf.config["P2P"]["host"] is None:
+        if ("solo_mode" in self.config["P2P"] and self.config["P2P"]["solo_mode"]) or self.config["P2P"]["host"] is None:
             self._example_solo_workflow()
         else:
             self.__p2p = Runner(self.config["P2P"])
