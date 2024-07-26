@@ -1,6 +1,8 @@
 #!/bin/env python3
 from argparse import ArgumentParser
 
+import pandas as pd
+
 from gLinDA.lib.config import Config
 from gLinDA.lib.p2p import Runner
 from gLinDA.lib.linda import LinDA
@@ -17,23 +19,28 @@ class Wrapper:
         if ("solo_mode" in self.config["P2P"] and self.config["P2P"]["solo_mode"]) or self.config["P2P"]["host"] is None:
             self.run_locally()
         else:
-            self.__p2p = Runner(self.config["P2P"])
             self.run_sl()
 
     def run_locally(self):
-        linda = LinDA()
-        results = linda.run_local(self.config["LINDA"])
-        print(results)
+        results = LinDA.run_local(self.config["LINDA"])
+        print(LinDA.display_results(results))
+
         return results
 
     def run_sl(self):
-        linda = LinDA()
-        coeffs = linda.run_sl_start(self.config["LINDA"])
-        replies = self.__p2p.broadcast_obj(coeffs)
+
+        # calculate coefficients
+        coeffs = LinDA.run_sl(self.config["LINDA"])
+
+        # start and broadcast p2p network
+        p2p = Runner(self.config["P2P"])
+        replies = p2p.broadcast_obj(coeffs)
+
         # Add own parameters to the replies
         replies.update({0: coeffs})
-        results = linda.run_sl_avg(replies, self.config["LINDA"]["formula"])
-        print(results)
+        results = LinDA.run_sl_avg(replies, self.config["LINDA"]["formula"])
+        print(LinDA.display_results(results))
+
         return results
 
 

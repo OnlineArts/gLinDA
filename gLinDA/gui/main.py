@@ -4,6 +4,7 @@ from PyQt6 import QtWidgets, QtCore, uic, QtGui
 
 from gLinDA.lib.config import Config
 from gLinDA.gui.worker import gLinDALocalWorker, gLinDAP2PWorker
+from gLinDA.lib.linda import LinDA
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -12,10 +13,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi("gui/gui.ui", self)
+        uic.loadUi("gLinDA/gui/gui.ui", self)
 
         # Icon
-        self.setWindowIcon(QtGui.QIcon("gui/logo.png"))
+        self.setWindowIcon(QtGui.QIcon("gLinDA/gui/logo.png"))
 
         # P2P and threading
         self.thread = QtCore.QThread()
@@ -444,23 +445,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Tabs.setTabVisible(1, True)
         self.Tabs.setCurrentIndex(1)
         self.ResultText.setEnabled(True)
-
-        formatted_results = ""
-        from linda import LinDA
-        import pandas as pd
-        cfg: dict = self.config.get()
-
-        for var in LinDA.split_formula(cfg["LINDA"]["formula"]):
-            try:
-                var_res: pd.DataFrame = (result[var][result[var]["reject"] == True].
-                                         sort_values(by=['padj']).drop(["reject"], axis=1))
-                formatted_results += "%s\r\n" % var
-                formatted_results += var_res.to_markdown()
-                formatted_results += "\r\n"
-            except Exception as e:
-                print(e)
-                continue
-
+        formatted_results = LinDA.display_results(result)
         self.ResultText.setText(formatted_results)
         self.ExportResult.setEnabled(True)
         self.gLinDAResults = [result, formatted_results]

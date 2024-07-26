@@ -152,7 +152,6 @@ class LinDA:
                                    "reject": reject})
             output.index = coefficients[voi].index
             output_frames[voi] = output
-            #output_frames[voi].to_csv("glinda_pval_" + str(self.id) + "_" + str(voi) + ".csv")
             variables.append(voi)
 
         return output_frames
@@ -231,9 +230,6 @@ class LinDA:
 
         return final_dict
 
-        self.update_params(final_dict)
-        self.network_params = []
-
     @staticmethod
     def linda_coefficients(
             feature_data: pd.DataFrame,
@@ -250,7 +246,7 @@ class LinDA:
             zero_handling: str = 'pseudo_count',
             pseudo_count: float = 0.5,
             corr_cut:float = 0.1,
-            verbose: bool = True,
+            verbose: bool = False,
             local: bool = True):
 
         return_bucket: dict = {"W": None, "Z": None}
@@ -274,6 +270,7 @@ class LinDA:
         temp = Y.T.divide(Y.sum(axis=0), axis=0).T
         keep_tax = (((temp != 0).mean(axis=1) >= prev_filter) & (temp.mean(axis=1) >= mean_abund_filter) & (
                     temp.max(axis=1) >= max_abund_filter))
+
         if verbose:
             numfiltered_out = len(Y.index) - sum(keep_tax)
             print(f"{numfiltered_out} features are filtered!")
@@ -376,7 +373,7 @@ class LinDA:
                 print("Fit linear models ...")
             frames = []
             models = {}
-            print(W.columns)
+
             for col in W.columns.values:
                 Wcol = W[col]
                 model = smf.ols(formula="Wcol " + formula, data=Z).fit()
@@ -455,27 +452,22 @@ class LinDA:
                 'size': len(meta_data)
             }
 
+    @staticmethod
+    def run_local(cfg):
+        feature_data = LinDA.read_table(cfg["feature_table"])
+        meta_data = LinDA.read_table(cfg["metadata_table"])
 
-    def run(self, feature_dat: pd.DataFrame, meta_dat: pd.DataFrame, formula: str, feature_dat_type: str = 'count',
-              data_name: str = "", prev_filter: float = 0.0,  mean_abund_filter: float = 0,
-              max_abund_filter: float = 0, is_winsor: bool = True, outlier_pct: float = 0.03, adaptive: bool = True,
-              zero_handling: str = 'pseudo_count', pseudo_count: float = 0.5, corr_cut: float = 0.1,
-              verbose: bool = True) -> dict:
+        coefficients = LinDA.run(feature_data, meta_data, cfg, True)
+        corrected_coefficients, dof = LinDA.correct_bias(len(meta_data), cfg["formula"], coefficients)
+        results = LinDA.linda_output(dof, corrected_coefficients)
+        return results
+
+    @staticmethod
+    def run(feature, meta, cfg: dict, local: bool = True):
         try:
-            return self.linda(feature_dat, meta_dat, formula, feature_dat_type, data_name, prev_filter, mean_abund_filter,
-                       max_abund_filter, is_winsor, outlier_pct, adaptive, zero_handling, pseudo_count, corr_cut,
-                       verbose)
-        except Exception as e:
-            raise LindaInternalError(e)
-
-    def run_local(self, cfg):
-        try:
-            feature_data = LinDA.read_table(cfg["feature_table"])
-            meta_data = LinDA.read_table(cfg["metadata_table"])
-
-            coefficients = LinDA.linda_coefficients(
-                feature_data = feature_data,
-                meta_data = meta_data,
+            return LinDA.linda_coefficients(
+                feature_data = feature,
+                meta_data = meta,
                 feature_dat_type = cfg["feature_data_type"],
                 data_name = "name",
                 formula = cfg["formula"],
@@ -489,51 +481,41 @@ class LinDA:
                 pseudo_count = cfg["pseudo_count"],
                 corr_cut = cfg["correction_cutoff"],
                 verbose = cfg["verbose"],
-                local = True
+                local = local
             )
-            corrected_coefficients, dof = LinDA.correct_bias(len(meta_data), cfg["formula"], coefficients)
-            results = LinDA.linda_output(dof, corrected_coefficients)
-            return results
         except Exception as e:
             raise LindaInternalError(e)
 
     @staticmethod
-    def run_sl_start(cfg: dict):
-        try:
-            feature_data = LinDA.read_table(cfg["feature_table"])
-            meta_data = LinDA.read_table(cfg["metadata_table"])
-
-            coefficients = LinDA.linda_coefficients(
-                feature_data = feature_data,
-                meta_data = meta_data,
-                feature_dat_type = cfg["feature_data_type"],
-                data_name = "name",
-                formula = cfg["formula"],
-                prev_filter = cfg["prevalence"],
-                mean_abund_filter = cfg["mean_abundance"],
-                max_abund_filter = cfg["max_abundance"],
-                is_winsor = cfg["winsor"],
-                outlier_pct = cfg["outlier_percentage"],
-                adaptive = cfg["adaptive"],
-                zero_handling = cfg["zero_handling"],
-                pseudo_count = cfg["pseudo_count"],
-                corr_cut = cfg["correction_cutoff"],
-                verbose = cfg["verbose"],
-                local = False
-            )
-            return coefficients
-        except Exception as e:
-            raise LindaInternalError(e)
+    def run_sl(cfg):
+        feature_data = LinDA.read_table(cfg["feature_table"])
+        meta_data = LinDA.read_table(cfg["metadata_table"])
+        return LinDA.run(feature_data, meta_data, cfg, False)
 
     @staticmethod
     def run_sl_avg(all_parameters: dict, formula: str):
         try:
             total_data_size = sum([a["size"] for a in all_parameters.values()])
-            print(total_data_size)
             merged_coefficients = LinDA.take_avg_params(all_parameters)
             corrected_coefficients, dof = LinDA.correct_bias(total_data_size, formula, merged_coefficients)
-            results = LinDA.linda_output(dof, corrected_coefficients)
-
-            return results
+            return LinDA.linda_output(dof, corrected_coefficients)
         except Exception as e:
             raise LindaInternalError(e)
+
+    @staticmethod
+    def display_results(results: dict):
+        collector: str = ""
+        for key, item in results.items():
+            try:
+                if len(item):
+                    new_tab: pd.DataFrame = item[item["reject"] == True].sort_values(by=["padj"])
+                    collector += "%s (%d)\r\n" %(key, len(new_tab))
+                    if len(new_tab):
+                        collector += "%s\r\n" % new_tab.drop(["reject"], axis=1).to_string()
+                    else:
+                        collector += "Sorry, no significant match\r\n"
+                    collector += "\r\n"
+            except Exception as e:
+                print(e)
+                continue
+        return collector

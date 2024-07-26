@@ -7,8 +7,8 @@ from multiprocessing import Process, Manager
 
 sys.path.insert(1, "../gLinDA")
 
-from config import Config
-from p2p import Runner
+from gLinDA.lib.config import Config
+from gLinDA.lib.p2p import Runner
 
 
 class HelperFunctions:

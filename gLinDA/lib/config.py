@@ -33,7 +33,7 @@ class Config:
             "outlier_percentage": 0.03,
             "pseudo_count": 0.5,
             "correction_cutoff": 0.1,
-            "verbose": False,
+            "verbose": 0,
             "winsor": True,
             "adaptive": True
         }
@@ -95,6 +95,9 @@ class Config:
         self.config["LINDA"]["max_abundance"] = self._cast_float(self.config["LINDA"]["max_abundance"])
         self.config["LINDA"]["correction_cutoff"] = self._cast_float(self.config["LINDA"]["correction_cutoff"])
         self.config["LINDA"]["pseudo_count"] = self._cast_float(self.config["LINDA"]["pseudo_count"])
+
+        if type(self.config["LINDA"]["verbose"]) is str:
+            self.config["LINDA"]["verbose"] = int(self.config["LINDA"]["verbose"])
 
     def __resolve_host(self, include_own_host: bool = False) -> bool:
         """

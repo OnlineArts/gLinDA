@@ -71,7 +71,7 @@ class gLinDAP2PWorker(QtCore.QObject):
         results: str = ""
 
         try:
-            params = linda.run_sl_start(self.config["LINDA"])
+            params = linda.run_sl(self.config["LINDA"])
 
             self.progress.emit(1)
             p2p = Runner(self.config["P2P"])
@@ -81,9 +81,6 @@ class gLinDAP2PWorker(QtCore.QObject):
             replies.update({0: params})
 
             results = linda.run_sl_avg(replies, cfg["formula"])
-            significants = results["grp"][results["grp"]["reject"] == True]
-            print(significants)
-            print(len(significants))
 
         except LindaInternalError as e:
             results: dict = {"ERROR": e}
