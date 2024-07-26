@@ -1,8 +1,9 @@
 #!/bin/env python3
-from config import Config
-from p2p import Runner
-
 from argparse import ArgumentParser
+
+from gLinDA.lib.config import Config
+from gLinDA.lib.p2p import Runner
+from gLinDA.lib.linda import LinDA
 
 
 class Wrapper:
@@ -14,32 +15,26 @@ class Wrapper:
         self.config = Config(arguments).get()
 
         if ("solo_mode" in self.config["P2P"] and self.config["P2P"]["solo_mode"]) or self.config["P2P"]["host"] is None:
-            self._example_solo_workflow()
+            self.run_locally()
         else:
             self.__p2p = Runner(self.config["P2P"])
-            self._example_p2p_workflow()
+            self.run_sl()
 
-    def _example_solo_workflow(self):
-        print("Solo Mode: Hi, I'm lonely there")
-        print(self.config["LINDA"])
+    def run_locally(self):
+        linda = LinDA()
+        results = linda.run_local(self.config["LINDA"])
+        print(results)
+        return results
 
-    def _example_p2p_workflow(self):
-        """
-        A minimal example demonstrating how to send and receive values
-        """
-        import random
-
-        # Broadcast a string
-        my_msg: str = "Test Message: %s" % random.randint(10, 99)
-        broadcast = self.__p2p.broadcast_str(my_msg)
-        print("My message: %s" % my_msg)
-        print("Received messages: %s" % broadcast)
-
-        # Broadcast a dictionary as an object
-        my_dictionary: dict = {"A %d" % random.randint(0, 9): "B %d" % random.randint(0, 9)}
-        broadcast = self.__p2p.broadcast_obj(my_dictionary)
-        print("My dictionary: %s" % my_dictionary)
-        print("Received messages: %s" % broadcast)
+    def run_sl(self):
+        linda = LinDA()
+        coeffs = linda.run_sl_start(self.config["LINDA"])
+        replies = self.__p2p.broadcast_obj(coeffs)
+        # Add own parameters to the replies
+        replies.update({0: coeffs})
+        results = linda.run_sl_avg(replies, self.config["LINDA"]["formula"])
+        print(results)
+        return results
 
 
 def main():

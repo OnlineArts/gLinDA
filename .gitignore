@@ -2,6 +2,8 @@
 dist/*
 gLinDA.egg-info/*
 gLinDA/__pycache__/*
+gLinDA/gui/__pycache__/*
 gLinDA/lib/__pycache__/*
 build/*
 tests/__pycache__/*
+examples/EV*
