@@ -7,9 +7,6 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Util.Padding import pad, unpad
 
-from gLinDA.lib.p2p_server import Server
-from gLinDA.lib.p2p_client import Client
-
 """
 P2P
 
@@ -348,6 +345,7 @@ class Runner:
         Loads the P2P Server class, that is listening.
         :return: the server class object
         """
+        from gLinDA.lib.p2p_server import Server
         server = Server(self.config, self.keyring, initial, results, event=event)
         return server
 
@@ -356,6 +354,7 @@ class Runner:
         Loads the P2P Client class, that submits data.
         :return: the client class object
         """
+        from gLinDA.lib.p2p_client import Client
         client = Client(self.config, self.keyring, initial)
         return client
 

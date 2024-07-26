@@ -1,8 +1,6 @@
 #!/bin/env python3
 from argparse import ArgumentParser
 
-import pandas as pd
-
 from gLinDA.lib.config import Config
 from gLinDA.lib.p2p import Runner
 from gLinDA.lib.linda import LinDA

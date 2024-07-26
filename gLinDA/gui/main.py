@@ -125,7 +125,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if filename:
             self.metadata.setText("Meta Data: %s" % path.basename(filename))
             cfg: dict = self.config.get()
-            cfg["LINDA"]["metadata_table"] = filename
+            cfg["LINDA"]["meta_table"] = filename
             self.config.set(cfg)
             self.check_run_btn()
 
@@ -172,9 +172,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.featuredata.setText("Feature Table: %s" % path.basename(config["LINDA"]["feature_table"]))
             self.FeaturePopupButton.setEnabled(True)
 
-        if config["LINDA"]["metadata_table"] is not None and type(config["LINDA"]["metadata_table"]) is str and \
-            path.exists(config["LINDA"]["metadata_table"]):
-            self.metadata.setText("Meta Data: %s" % path.basename(config["LINDA"]["metadata_table"]))
+        if config["LINDA"]["meta_table"] is not None and type(config["LINDA"]["meta_table"]) is str and \
+            path.exists(config["LINDA"]["meta_table"]):
+            self.metadata.setText("Meta Data: %s" % path.basename(config["LINDA"]["meta_table"]))
             #self.MetaPopupButton.setEnabled(True)
 
         if config["LINDA"]["prevalence"] is not None:

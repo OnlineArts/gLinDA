@@ -4,6 +4,7 @@ import time
 
 from gLinDA.lib.p2p import P2P, Keyring
 
+
 class Client(P2P):
 
     def __init__(self, config: dict, keyring: Keyring = None, initial: bool = False):
@@ -15,7 +16,7 @@ class Client(P2P):
             for peer in self.peers:
                 self.__initiate_communication(peer)
             if self.verbose >= 1:
-                print("Client: I'm done!")
+                print("Client #1: I'm done!")
 
     def send_payload(self, raw_payload: bytes):
         for peer in self.peers:
@@ -47,17 +48,17 @@ class Client(P2P):
                         not_connected = False
 
                         if self.verbose >= 1:
-                            print("Client: chunk data #%d" % chunk_nr)
+                            print("Client #1: chunk data #%d" % chunk_nr)
 
                         s.sendall(msg)
 
                         s.close()
                     except ConnectionRefusedError as e:
                         if self.verbose >= 1:
-                            print("Client: Are you sure the peer %s is reachable? Retry in %d s" %
+                            print("Client #1: Are you sure the peer %s is reachable? Retry in %d s" %
                                   (peer, super().waiting_time))
                         time.sleep(super().waiting_time)
-                        super().set_waiting_time(super().waiting_time+1)
+                        super().set_waiting_time(super().waiting_time + 1)
                     except Exception as e:
                         print(e)
         time.sleep(super().waiting_time)  # Test, wait after sending
@@ -75,7 +76,7 @@ class Client(P2P):
 
                         msg = random_number.to_bytes(3, "big")
                         if self.config["asymmetric"]:
-                            msg += self.keyring.get_keys(False)[1] # public key
+                            msg += self.keyring.get_keys(False)[1]  # public key
 
                         enc_msg = self.encryption.encrypt(
                             msg,
@@ -83,7 +84,7 @@ class Client(P2P):
                         )
 
                         if self.verbose >= 1:
-                            print("Client: send random number %d" % random_number)
+                            print("Client #1: send random number %d" % random_number)
 
                         s.sendall(enc_msg)
 
@@ -98,23 +99,23 @@ class Client(P2P):
 
                         if confirmation_number != (random_number + 1):
                             s.close()
-                            print("Client: Confirmation with %s failed, ignore peer" % peer)
+                            print("Client #1: Confirmation with %s failed, ignore peer" % peer)
 
                         else:
                             if self.verbose >= 1:
-                                print("Client: Encrypted communication was successful")
+                                print("Client #1: Encrypted communication was successful")
                             self.keyring.add_peer(peer, (confirmation_number, answer[self.bytes_len:]),
                                                   False)
 
                         s.close()
                     except ConnectionRefusedError as e:
                         if self.verbose >= 1:
-                            print("Client: Are you sure the peer %s is reachable? Retry in %d s" % (
-                            peer, super().waiting_time))
+                            print("Client #1: Are you sure the peer %s is reachable? Retry in %d s" % (
+                                peer, super().waiting_time))
                         time.sleep(super().waiting_time)
-                        super().set_waiting_time(super().waiting_time+1)
+                        super().set_waiting_time(super().waiting_time + 1)
                     except Exception as e:
                         print(e)
         except KeyboardInterrupt as e:
-            print("Client: Terminated manually")
+            print("Client #1: Terminated manually")
         time.sleep(super().waiting_time)  # Test, wait after sending

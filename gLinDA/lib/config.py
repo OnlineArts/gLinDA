@@ -6,7 +6,7 @@ import os
 class Config:
     """
     Conserves all configuration values
-    (GUI) > Arguments > Configuration file
+    GUI > Arguments > Configuration file
     """
 
     config: dict = {
@@ -18,14 +18,17 @@ class Config:
             "asymmetric": True,
             "solo_mode": False,
             "ignore_keys": False,  # only for internal use
-            "test": None,  # only for internal use
+            "test": None,          # only for internal use
             "resolve_host": True,  # only for internal use
         },
         "LINDA": {
             "formula": "",
             "feature_table": "",
-            "metadata_table": "",
-            "feature_data_type": "count",
+            "feature_index": "",
+            "feature_transpose": False,
+            "meta_table": "",
+            "meta_index": "",
+            "feature_type": "count",
             "prevalence": 0.1,
             "mean_abundance": 0,
             "max_abundance": 0,
@@ -86,6 +89,7 @@ class Config:
         self.config["P2P"]["asymmetric"] = self._cast_bool(self.config["P2P"]["asymmetric"])
         self.config["P2P"]["solo_mode"] = self._cast_bool(self.config["P2P"]["solo_mode"])
 
+        self.config["LINDA"]["feature_transpose"] = self._cast_bool(self.config["LINDA"]["feature_transpose"])
         self.config["LINDA"]["winsor"] = self._cast_bool(self.config["LINDA"]["winsor"])
         self.config["LINDA"]["adaptive"] = self._cast_bool(self.config["LINDA"]["adaptive"])
         self.config["LINDA"]["prevalence"] = self._cast_float(self.config["LINDA"]["prevalence"])
@@ -193,7 +197,7 @@ class Config:
         if not self.__check_path("feature_table"):
             return False
 
-        if not self.__check_path("metadata_table"):
+        if not self.__check_path("meta_table"):
             return False
 
         if not len(self.config["LINDA"]["formula"]):

@@ -6,9 +6,8 @@ import math
 import scipy as sp
 from io import StringIO
 
-from gLinDA.lib.errors import LindaInternalError
+from gLinDA.lib.errors import LindaInternalError, LindaWrongData
 
-__version__ = "1.0.0"
 __author__ = 'Leon Fehse, Mohammad Tajabadi, Roman Martin'
 __credits__ = 'Heinrich Heine University Duesseldorf'
 
@@ -31,10 +30,8 @@ class LinDA:
         M = np.mean(y[i:(i + k + 1)])
         return M
 
-    # function not by me found this here: https://stackoverflow.com/questions/45193294/show-more-significant-figures-of-coefficients
     @staticmethod
-    def bw_nrd0(x):
-
+    def bw_nrd0(x): # https://stackoverflow.com/questions/45193294/show-more-significant-figures-of-coefficients
         if len(x) < 2:
             raise (Exception("need at least 2 data points"))
 
@@ -42,7 +39,6 @@ class LinDA:
         q75, q25 = np.percentile(x, [75, 25])
         iqr = q75 - q25
         lo = min(hi, iqr / 1.34)
-
         lo = lo or hi or abs(x[0]) or 1
 
         return 0.9 * lo * len(x) ** -0.2
@@ -66,40 +62,40 @@ class LinDA:
         return par, s + 1
 
     @staticmethod
+    def windsor_dedup(P, Y, quan):
+        cut = P.quantile(q=quan, axis=1)
+        empty_arr = np.empty((len(Y.index.values), len(Y.columns.values)))
+        for row, cutval in zip(empty_arr, cut):
+            row.fill(cutval)
+        ind = P > empty_arr
+        temp = np.where(ind)
+        cols = temp[1]
+        rows = temp[0]
+        for row_i, col_j in zip(rows, cols):
+            P.iloc[row_i, col_j] = empty_arr[row_i, col_j]
+        return P, Y
+
+    @staticmethod
     def winsor_fun(Y, quan, feature_dat_type):
         if feature_dat_type == 'count':
             N = Y.sum(axis=0)
             P = Y.T.divide(N, axis=0).T
-            cut = P.quantile(q=quan, axis=1)
-            empty_arr = np.empty((len(Y.index.values), len(Y.columns.values)))
-            for row, cutval in zip(empty_arr, cut):
-                row.fill(cutval)
-            ind = P > empty_arr
-            temp = np.where(ind)
-            cols = temp[1]
-            rows = temp[0]
-            for row_i, col_j in zip(rows, cols):
-                P.iloc[row_i, col_j] = empty_arr[row_i, col_j]
+            P, Y = LinDA.windsor_dedup(P, Y, quan)
             Y = round(P.T.multiply(N, axis=0).T).astype(int)
-
-        if feature_dat_type == 'proportion':
-            cut = Y.quantile(q=quan, axis=1)
-            empty_arr = np.empty((len(Y.index.values), len(Y.columns.values)))
-            for row, cutval in zip(empty_arr, cut):
-                row.fill(cutval)
-            ind = Y > empty_arr
-            temp = np.where(ind)
-            cols = temp[1]
-            rows = temp[0]
-            for row_i, col_j in zip(rows, cols):
-                Y.iloc[row_i, col_j] = empty_arr[row_i, col_j]
+        elif feature_dat_type == 'proportion':
+            X, Y = LinDA.windsor_dedup(Y, Y, quan)
 
         return Y
 
     @staticmethod
     def read_table(path: str, col: str = "") -> pd.DataFrame:
         if len(col):
-            table: pd.DataFrame = pd.read_csv(path, index_col=col)
+            try:
+                table: pd.DataFrame = pd.read_csv(path, index_col=col)
+            except ValueError as e:
+                print(e)
+                raise LindaWrongData("Error: Probably wrong index, please verify if the column %s exists in the file %s"
+                                     % (col, path))
             return table
         else:
             for col in ["ID", "id", "SampleID", "Sample", "sample", "sample_name", "Genus"]:
@@ -146,10 +142,10 @@ class LinDA:
             output = pd.DataFrame({
                 "base_mean": coefficients[voi]["base_mean"],
                 "stat": coefficients[voi]["stat"],
-                                   "stde": coefficients[voi]["stde"],
-                                   "pval": pval,
-                                   "padj": padj,
-                                   "reject": reject})
+                "stde": coefficients[voi]["stde"],
+                "pval": pval,
+                "padj": padj,
+                "reject": reject})
             output.index = coefficients[voi].index
             output_frames[voi] = output
             variables.append(voi)
@@ -237,7 +233,7 @@ class LinDA:
             formula: str,
             feature_dat_type: str = 'count',
             data_name: str = "",
-            prev_filter: float =0.0,
+            prev_filter: float = 0.0,
             mean_abund_filter: float = 0.0,
             max_abund_filter: float = 0.0,
             is_winsor: bool = True,
@@ -245,7 +241,7 @@ class LinDA:
             adaptive: bool = True,
             zero_handling: str = 'pseudo_count',
             pseudo_count: float = 0.5,
-            corr_cut:float = 0.1,
+            corr_cut: float = 0.1,
             verbose: bool = False,
             local: bool = True):
 
@@ -263,13 +259,18 @@ class LinDA:
         # Filter sample
         keep_sam = Z.notna().all(axis=1)
         Z = Z[keep_sam]
-        Y = feature_data.T[keep_sam].T
+
+        try:
+            Y = feature_data.T[keep_sam].T
+        except Exception:
+            raise Exception("Error: Probably you have to transpose the feature table (you can do transpose it in the "
+                            "configuration file)")
         Z.columns = all_var
 
         # Filter features
         temp = Y.T.divide(Y.sum(axis=0), axis=0).T
         keep_tax = (((temp != 0).mean(axis=1) >= prev_filter) & (temp.mean(axis=1) >= mean_abund_filter) & (
-                    temp.max(axis=1) >= max_abund_filter))
+                temp.max(axis=1) >= max_abund_filter))
 
         if verbose:
             numfiltered_out = len(Y.index) - sum(keep_tax)
@@ -364,7 +365,6 @@ class LinDA:
         W = W.apply(pd.to_numeric)
 
         return_bucket.update({"W": W, "Z": Z})
-
         normalized_data = feature_data.div(feature_data.sum(axis=0), axis=1)
         sums_normalized = normalized_data.sum(axis=1)
 
@@ -383,7 +383,7 @@ class LinDA:
                 frames.append(model_summary)
 
             res = pd.concat(frames)
-        else:  # needs to be checked still
+        else:
             if verbose:
                 print("Fit linear mixed effect models ...")
             frames = []
@@ -453,54 +453,78 @@ class LinDA:
             }
 
     @staticmethod
-    def run_local(cfg):
-        feature_data = LinDA.read_table(cfg["feature_table"])
-        meta_data = LinDA.read_table(cfg["metadata_table"])
-
-        coefficients = LinDA.run(feature_data, meta_data, cfg, True)
-        corrected_coefficients, dof = LinDA.correct_bias(len(meta_data), cfg["formula"], coefficients)
-        results = LinDA.linda_output(dof, corrected_coefficients)
-        return results
-
-    @staticmethod
     def run(feature, meta, cfg: dict, local: bool = True):
         try:
             return LinDA.linda_coefficients(
-                feature_data = feature,
-                meta_data = meta,
-                feature_dat_type = cfg["feature_data_type"],
-                data_name = "name",
-                formula = cfg["formula"],
-                prev_filter = cfg["prevalence"],
-                mean_abund_filter = cfg["mean_abundance"],
-                max_abund_filter = cfg["max_abundance"],
-                is_winsor = cfg["winsor"],
-                outlier_pct = cfg["outlier_percentage"],
-                adaptive = cfg["adaptive"],
-                zero_handling = cfg["zero_handling"],
-                pseudo_count = cfg["pseudo_count"],
-                corr_cut = cfg["correction_cutoff"],
-                verbose = cfg["verbose"],
-                local = local
+                feature_data=feature,
+                meta_data=meta,
+                feature_dat_type=cfg["feature_type"],
+                data_name="name",
+                formula=cfg["formula"],
+                prev_filter=cfg["prevalence"],
+                mean_abund_filter=cfg["mean_abundance"],
+                max_abund_filter=cfg["max_abundance"],
+                is_winsor=cfg["winsor"],
+                outlier_pct=cfg["outlier_percentage"],
+                adaptive=cfg["adaptive"],
+                zero_handling=cfg["zero_handling"],
+                pseudo_count=cfg["pseudo_count"],
+                corr_cut=cfg["correction_cutoff"],
+                verbose=cfg["verbose"],
+                local=local
             )
         except Exception as e:
             raise LindaInternalError(e)
 
     @staticmethod
+    def run_local(cfg):
+        results = {}
+        try:
+            feature_data = LinDA.read_table(cfg["feature_table"], cfg["feature_index"])
+            if cfg["feature_transpose"]:
+                feature_data = feature_data.T
+            meta_data = LinDA.read_table(cfg["meta_table"], cfg["meta_index"])
+            coefficients = LinDA.run(feature_data, meta_data, cfg, True)
+            corrected_coefficients, dof = LinDA.correct_bias(len(meta_data), cfg["formula"], coefficients)
+            results = LinDA.linda_output(dof, corrected_coefficients)
+        except LindaWrongData as e:
+            print(e)
+        except LindaInternalError as e:
+            print(e)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(e)
+        finally:
+            return results
+
+    @staticmethod
     def run_sl(cfg):
-        feature_data = LinDA.read_table(cfg["feature_table"])
-        meta_data = LinDA.read_table(cfg["metadata_table"])
+        feature_data = LinDA.read_table(cfg["feature_table"], cfg["feature_index"])
+        if cfg["feature_transpose"]:
+            feature_data = feature_data.T
+        meta_data = LinDA.read_table(cfg["meta_table"], cfg["meta_index"])
         return LinDA.run(feature_data, meta_data, cfg, False)
 
     @staticmethod
     def run_sl_avg(all_parameters: dict, formula: str):
+        results = {}
         try:
             total_data_size = sum([a["size"] for a in all_parameters.values()])
             merged_coefficients = LinDA.take_avg_params(all_parameters)
             corrected_coefficients, dof = LinDA.correct_bias(total_data_size, formula, merged_coefficients)
-            return LinDA.linda_output(dof, corrected_coefficients)
+            results = LinDA.linda_output(dof, corrected_coefficients)
+        except LindaWrongData as e:
+            print(e)
+        except LindaInternalError as e:
+            print(e)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(e)
             raise LindaInternalError(e)
+        finally:
+            return results
 
     @staticmethod
     def display_results(results: dict):
@@ -509,7 +533,7 @@ class LinDA:
             try:
                 if len(item):
                     new_tab: pd.DataFrame = item[item["reject"] == True].sort_values(by=["padj"])
-                    collector += "%s (%d)\r\n" %(key, len(new_tab))
+                    collector += "%s (%d)\r\n" % (key, len(new_tab))
                     if len(new_tab):
                         collector += "%s\r\n" % new_tab.drop(["reject"], axis=1).to_string()
                     else:

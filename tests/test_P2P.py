@@ -5,7 +5,7 @@ import random
 from copy import deepcopy
 from multiprocessing import Process, Manager
 
-sys.path.insert(1, "../gLinDA")
+sys.path.insert(1, "../")
 
 from gLinDA.lib.config import Config
 from gLinDA.lib.p2p import Runner

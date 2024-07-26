@@ -689,6 +689,9 @@ p, li { white-space: pre-wrap; }
    <property name="text">
     <string>Export results...</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
   </action>
  </widget>
  <resources/>
