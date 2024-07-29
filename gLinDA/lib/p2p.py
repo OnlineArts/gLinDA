@@ -15,8 +15,8 @@ implementation and all cryptographic-related handling.
 """
 
 __version__ = "1.0.0"
-__author__ = 'Roman Martin'
-__credits__ = 'Heinrich Heine University Duesseldorf'
+__author__ = "Roman Martin"
+__credits__ = "Heinrich Heine University Düsseldorf"
 
 
 class Keyring:
@@ -154,7 +154,7 @@ class EncryptionSymmetric:
         :return: the AES key
         """
         sha_hash = SHA512.new()
-        sha_hash.update(bytes(password, encoding='utf8'))
+        sha_hash.update(bytes(password, encoding="utf8"))
         if not skip_iterations:
             if self.config["verbose"] >= 2:
                 print("EncryptionSymmetric #2: Start SHA512 transformations iterations %d" % self._iterations)
@@ -179,7 +179,7 @@ class EncryptionSymmetric:
         addresses.sort()
 
         # put the list into an MD5 hash to achieve the right byte size.
-        iv = MD5.new(bytes(str(addresses), encoding='utf8')).digest()
+        iv = MD5.new(bytes(str(addresses), encoding="utf8")).digest()
 
         if self.config["verbose"] >= 2:
             print("EncryptionSymmetric #2: Initialization vector: %s" % iv)
@@ -303,13 +303,13 @@ class Runner:
         """
         Manages the handshake and errors; analyses the constructed keyring.
         """
-        if "test" in self.config is not None and self.config["test"] == 'server':
+        if "test" in self.config is not None and self.config["test"] == "server":
             server = self.run_server(True)
-            print( server.keyring.get_peers() )
+            print(server.keyring.get_peers())
             exit(0)
-        elif "test" in self.config is not None and self.config["test"] == 'client':
+        elif "test" in self.config is not None and self.config["test"] == "client":
             client = self.run_client(True)
-            print( client.keyring.get_peers() )
+            print(client.keyring.get_peers())
             exit(0)
         else:
             keyring = self.__initialize_handshake()

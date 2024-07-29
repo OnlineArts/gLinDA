@@ -7,3 +7,4 @@ gLinDA/lib/__pycache__/*
 build/*
 tests/__pycache__/*
 examples/EV*
+__pycache__/*

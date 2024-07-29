@@ -8,8 +8,8 @@ from io import StringIO
 
 from gLinDA.lib.errors import LindaInternalError, LindaWrongData
 
-__author__ = 'Leon Fehse, Mohammad Tajabadi, Roman Martin'
-__credits__ = 'Heinrich Heine University Duesseldorf'
+__author__ = "Leon Fehse, Mohammad Tajabadi, Roman Martin"
+__credits__ = "Heinrich Heine University Düsseldorf"
 
 
 class LinDA:
@@ -77,12 +77,12 @@ class LinDA:
 
     @staticmethod
     def winsor_fun(Y, quan, feature_dat_type):
-        if feature_dat_type == 'count':
+        if feature_dat_type == "count":
             N = Y.sum(axis=0)
             P = Y.T.divide(N, axis=0).T
             P, Y = LinDA.windsor_dedup(P, Y, quan)
             Y = round(P.T.multiply(N, axis=0).T).astype(int)
-        elif feature_dat_type == 'proportion':
+        elif feature_dat_type == "proportion":
             X, Y = LinDA.windsor_dedup(Y, Y, quan)
 
         return Y
@@ -119,10 +119,10 @@ class LinDA:
         all_var = LinDA.split_formula(formula)
 
         for key, df in coefficients.items():
-            pre_bias, iters = LinDA.default_mean_shift_modeest(math.sqrt(float(n)) * df['stat'])
+            pre_bias, iters = LinDA.default_mean_shift_modeest(math.sqrt(float(n)) * df["stat"])
             bias = pre_bias / math.sqrt(float(n))
-            df['stat'] -= bias
-            df['stat'] /= df['stde']
+            df["stat"] -= bias
+            df["stat"] /= df["stde"]
 
         dof = n - (len(all_var) + 1)
         return coefficients, dof
@@ -160,8 +160,8 @@ class LinDA:
         id_list = []
 
         for id_, linda_params in all_parameters.items():
-            model = linda_params['coefs']
-            biases = linda_params['biases']
+            model = linda_params["coefs"]
+            biases = linda_params["biases"]
             id_list.append(id_)
             weight = linda_params["size"]
             models_list.append(model)
@@ -191,15 +191,15 @@ class LinDA:
                 for i, model in enumerate(models_list):
                     if voi in model and taxa in model[voi].index:
                         if (is_sum):
-                            taxa_sums = model[voi].loc[taxa]['taxa_sums']
+                            taxa_sums = model[voi].loc[taxa]["taxa_sums"]
                             total_weighted_sum += model[voi].loc[taxa]  # * weights[i]
                             total_weight += taxa_sums
                         else:
-                            taxa_sums = model[voi].loc[taxa]['taxa_sums']
+                            taxa_sums = model[voi].loc[taxa]["taxa_sums"]
                             for col in model[voi].columns:
                                 if col not in weighted_sums:
                                     weighted_sums[col] = 0
-                                if col == 'stde' or col == 'stde_avg':
+                                if col == "stde" or col == "stde_avg":
                                     weighted_sums[col] += (model[voi].loc[taxa][col] * weights[i]) ** 2
 
                                 else:
@@ -210,7 +210,7 @@ class LinDA:
                     final_dict[voi].loc[taxa] = total_weighted_sum  # / total_weight
                 else:
                     for col in weighted_sums:
-                        if col == 'stde' or col == 'stde_avg':
+                        if col == "stde" or col == "stde_avg":
                             final_dict[voi].loc[taxa, col] = np.sqrt(weighted_sums[col]) / total_weight
                         else:
                             final_dict[voi].loc[taxa, col] = weighted_sums[col] / total_weight
@@ -219,10 +219,10 @@ class LinDA:
 
             # TODO: Arsam, please check this
             temp = final_dict[voi]
-            if ('stde_avg' in temp.columns):
-                temp['division'] = temp['stat'] / temp['stde_avg']
+            if ("stde_avg" in temp.columns):
+                temp["division"] = temp["stat"] / temp["stde_avg"]
             else:
-                temp['division'] = temp['stat'] / temp['stde']
+                temp["division"] = temp["stat"] / temp["stde"]
 
         return final_dict
 
@@ -231,7 +231,7 @@ class LinDA:
             feature_data: pd.DataFrame,
             meta_data: pd.DataFrame,
             formula: str,
-            feature_dat_type: str = 'count',
+            feature_dat_type: str = "count",
             data_name: str = "",
             prev_filter: float = 0.0,
             mean_abund_filter: float = 0.0,
@@ -239,7 +239,7 @@ class LinDA:
             is_winsor: bool = True,
             outlier_pct: float = 0.03,
             adaptive: bool = True,
-            zero_handling: str = 'pseudo_count',
+            zero_handling: str = "pseudo_count",
             pseudo_count: float = 0.5,
             corr_cut: float = 0.1,
             verbose: bool = False,
@@ -291,8 +291,8 @@ class LinDA:
             print(f"The filtered data has {n} samples and {m} features will be tested")
 
         if sum((Y != 0).sum(axis=1) <= 2) != 0:
-            print(
-                "'Some features have less than 3 nonzero values!\nThey have virtually no statistical power. You may consider filtering them in the analysis!")
+            print("Some features have less than 3 nonzero values!\n They have virtually no statistical power.\n"
+                  "You may consider filtering them in the analysis!")
 
         # scaling numerical variables
         ind = [i for i in Z.columns.values if np.issubdtype(Z[i].dtype, np.number)]
@@ -318,7 +318,7 @@ class LinDA:
             samp_name = meta_data.index.values[keep_sam.values]
 
         # zero handling
-        if feature_dat_type == 'count':
+        if feature_dat_type == "count":
             if (Y == 0).any().any():
                 N = Y.sum(axis=0)
                 if adaptive:
@@ -420,7 +420,7 @@ class LinDA:
 
             highdec_log2FoldChange = []
             for val in log2FoldChange:
-                val = '{0:.16f}'.format(val)
+                val = "{0:.16f}".format(val)
                 highdec_log2FoldChange.append(float(val))
 
             highdec_log2FoldChange = np.array(highdec_log2FoldChange, dtype="float64")
@@ -446,10 +446,10 @@ class LinDA:
             return stat_dict
         else:
             return {
-                'coefs': stat_dict,
-                'biases': biases,
-                'formula': formula,
-                'size': len(meta_data)
+                "coefs": stat_dict,
+                "biases": biases,
+                "formula": formula,
+                "size": len(meta_data)
             }
 
     @staticmethod

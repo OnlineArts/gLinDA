@@ -14,9 +14,9 @@ from gLinDA.lib.p2p import Runner
 class HelperFunctions:
 
     @staticmethod
-    def expected_answers(anwsers: list, clients: int):
+    def expected_answers(replies: list, clients: int):
         count_answers: int = 0
-        for an in anwsers:
+        for an in replies:
             count_answers += len(an)
 
         return count_answers == (clients - 1) * clients

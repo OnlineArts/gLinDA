@@ -11,13 +11,17 @@ class Wrapper:
     Basic wrapper that should initialize the LinDA call and the P2P network.
     """
 
-    def __init__(self, arguments: ArgumentParser):
-        self.config = Config(arguments).get()
+    def __init__(self, arguments: ArgumentParser, run: bool = True):
+        self.config = Config(arguments, check_sanity=run).get()
 
+        if run:
+            self.run()
+
+    def run(self):
         if ("solo_mode" in self.config["P2P"] and self.config["P2P"]["solo_mode"]) or self.config["P2P"]["host"] is None:
-            self.run_locally()
+            return self.run_locally()
         else:
-            self.run_sl()
+            return self.run_sl()
 
     def run_locally(self):
         results = LinDA.run_local(self.config["LINDA"])
