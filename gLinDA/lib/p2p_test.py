@@ -23,6 +23,9 @@ class P2PIsolationTester:
                 send_data = runner.broadcast_obj(msg)
                 print(send_data)
                 size_counter += 1
+            except KeyboardInterrupt:
+                print("Closing in loop %d" % i)
+                exit(10)
             except Exception as e:
                 print(e)
                 break
