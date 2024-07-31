@@ -3,8 +3,6 @@ from copy import deepcopy
 
 from gLinDA.lib.config import Config
 from gLinDA.lib.p2p import Runner
-from gLinDA.lib.p2p_client import Client
-from gLinDA.lib.p2p_server import Server
 
 
 class P2PIsolationTester:
@@ -14,21 +12,24 @@ class P2PIsolationTester:
         self.test_case: str = test_case
 
         runner = Runner(self.config["P2P"])
-        size_counter = 1
-        while True:
+        size_counter: int = 1
+        testing: bool = True
+        while testing:
             try:
                 msg: dict = {}
                 for i in range(0, size_counter):
-                    msg.update({"msg%d" % i: i*100})
+                    msg.update({"msg%d" % i: random.randint(1000, 9999)})
                 send_data = runner.broadcast_obj(msg)
                 print(send_data)
-                size_counter += 1
+                size_counter += 10
             except KeyboardInterrupt:
                 print("Closing in loop %d" % i)
-                exit(10)
+                testing = False
             except Exception as e:
                 print(e)
-                break
+                testing = False
+
+        exit(99)
 
 
 class P2PTester:
