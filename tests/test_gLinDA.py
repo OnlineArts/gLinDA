@@ -67,7 +67,7 @@ class gLinDA_p2p_s5000_3peers(unittest.TestCase):
         return bucket_list
 
     def test_complete(self):
-        answers = self.simulate_peers(3, False)
+        answers = self.simulate_peers(3)
 
         multi_check: list = [0 if len(answers) == 3 else 1, 0 if "grp" in answers[0] else 1,
                              0 if len(answers[0]["grp"]) == 500 else 1]

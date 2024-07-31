@@ -2,9 +2,12 @@ import pandas as pd
 from os import path
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
 
+import gLinDA.gui.network_tester
 from gLinDA.lib.config import Config
 from gLinDA.gui.worker import gLinDALocalWorker, gLinDAP2PWorker
 from gLinDA.lib.linda import LinDA
+from gLinDA.gui.table_selector import TablePopUpDialog
+from gLinDA.gui.network_tester import NetworkTester
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -40,6 +43,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Save: QtWidgets.QWidgetAction = self.actionSaveConfig
         self.Export: QtWidgets.QWidgetAction = self.actionExportConfig
         self.ExportResult: QtWidgets.QWidgetAction = self.actionExportResults
+        self.Tester: QtWidgets.QWidgetAction = self.actionNetworkTest
 
         # Configuration tab
         ## P2P
@@ -86,16 +90,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ExportResult.setEnabled(False)
         self.FeaturePopupButton.setEnabled(False)
         self.MetaPopupButton.setEnabled(False)
+        self.Tester.setEnabled(False)
         # until debugged
         self.rsa.setChecked(False)
         self.rsa.setEnabled(False)
         self.aes.setChecked(True)
 
     def show_popup(self):
-        pop = self.TablePopUpDialog()
+        pop = TablePopUpDialog()
         pop.setFilename(self.config.get()["LINDA"]["feature_table"])
         pop.make()
         pop.exec()
+
+    def open_network_tester(self):
+        self.Run.setEnabled(False)
+        self.__update_config()
+
+        nt = NetworkTester()
+        nt.setPeers(self.config.get()["P2P"]["host"], self.config.get()["P2P"]["peers"])
+        nt.make()
+        nt.exec()
 
     def load_configuration_file(self):
         """
@@ -149,6 +163,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if config["P2P"]["peers"] is not None and type(config["P2P"]["peers"]) is list and \
             len(config["P2P"]["peers"]):
             for i in range(0, len(config["P2P"]["peers"])):
+                self.Tester.setEnabled(True)
                 if i > self.peer_fields:
                     break
                 peer_i: QtWidgets.QLineEdit = self.__getattribute__("Peer%dInput" % (i+1))
@@ -197,6 +212,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.solo.setChecked(config["P2P"]["solo_mode"])
             if self.solo.isChecked:
                 self.solo_mode()
+            else:
+                self.Tester.setEnabled(True)
 
     def save_config(self):
         """
@@ -313,6 +330,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Run.setEnabled(status)
         self.Save.setEnabled(status)
         self.Export.setEnabled(status)
+        self.Tester.setEnabled(status)
 
     def run_btn(self):
         """

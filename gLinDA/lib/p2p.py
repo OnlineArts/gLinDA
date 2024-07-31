@@ -178,8 +178,10 @@ class EncryptionSymmetric:
         addresses.append(self.config["host"])
         addresses.sort()
 
+        print(set(addresses))
+
         # put the list into an MD5 hash to achieve the right byte size.
-        iv = MD5.new(bytes(str(addresses), encoding="utf8")).digest()
+        iv = MD5.new(bytes(str(set(addresses)), encoding="utf8")).digest()
 
         if self.config["verbose"] >= 2:
             print("EncryptionSymmetric #2: Initialization vector: %s" % iv)

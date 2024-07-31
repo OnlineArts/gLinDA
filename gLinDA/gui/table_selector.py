@@ -1,4 +1,5 @@
 from PyQt6 import QtWidgets
+import pandas as pd
 
 
 class TablePopUpDialog(QtWidgets.QDialog):
@@ -21,7 +22,6 @@ class TablePopUpDialog(QtWidgets.QDialog):
 
     def setFilename(self, filename):
         self.filename = filename
-        print(self.filename)
 
     def make(self):
         self.setWindowTitle("%s select an identifier" % self.filename)
@@ -37,17 +37,17 @@ class TablePopUpDialog(QtWidgets.QDialog):
         self.qttab = QtWidgets.QTableWidget()
         self.qttab.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
 
-        if self.filename is not None and len(self.filename):
-            layout.addWidget(QtWidgets.QLabel("Currently selected identifier: %s" % self.cellname, self))
-            self.tab = pd.read_csv(self.filename, nrows=100).T
-            self.write_df_to_qtable(self.tab, self.qttab)
+        #if self.filename is not None and len(self.filename):
+        #    layout.addWidget(QtWidgets.QLabel("Currently selected identifier: %s" % self.cellname, self))
+        #    self.tab = pd.read_csv(self.filename, nrows=100).T
+        #    self.write_df_to_qtable(self.tab, self.qttab)
 
         layout.addWidget(self.qttab)
         horizontal_layout = QtWidgets.QHBoxLayout()
 
         confirm_btn = QtWidgets.QPushButton("Confirm")
         flip_btn = QtWidgets.QPushButton("Transpose")
-        flip_btn.clicked.connect(self.flip_table)
+        #flip_btn.clicked.connect(self.flip_table)
 
         horizontal_layout.addWidget(flip_btn)
         horizontal_layout.addWidget(confirm_btn)
