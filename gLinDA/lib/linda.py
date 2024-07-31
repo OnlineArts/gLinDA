@@ -98,14 +98,14 @@ class LinDA:
                                      % (col, path))
             return table
         else:
-            for col in ["ID", "id", "SampleID", "Sample", "sample", "sample_name", "Genus"]:
+            for col in ["ID", "id", "SampleID", "Sample", "sample", "sample_name"]:
                 try:
                     table: pd.DataFrame = pd.read_csv(path, index_col=col)
                     return table
                 except ValueError:
                     continue
 
-        raise ValueError("Could not identify the index columns")
+        raise ValueError("Could not identify the index columns for %s" % path)
 
     @staticmethod
     def split_formula(formula: str):

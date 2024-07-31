@@ -1,6 +1,7 @@
 from pickle import loads, dumps
 from threading import Thread, Event
 from copy import deepcopy
+from natsort import natsorted
 
 from Crypto.Hash import MD5, SHA256, SHA512
 from Crypto.Cipher import AES, PKCS1_OAEP
@@ -175,15 +176,15 @@ class EncryptionSymmetric:
         :return:
         """
         addresses: list = deepcopy(self.config["peers"])
-        addresses.append(self.config["host"])
-        addresses.sort()
-
-        print(set(addresses))
+        if self.config["host"] is not None and len(self.config["host"]):
+            addresses.append(self.config["host"])
+        addresses = natsorted(list(set(addresses)))
 
         # put the list into an MD5 hash to achieve the right byte size.
-        iv = MD5.new(bytes(str(set(addresses)), encoding="utf8")).digest()
+        iv = MD5.new(bytes(str(addresses), encoding="utf8")).digest()
 
         if self.config["verbose"] >= 2:
+            print("EncryptionSymmetric #2: addresses %s" % addresses)
             print("EncryptionSymmetric #2: Initialization vector: %s" % iv)
 
         return iv
@@ -261,6 +262,8 @@ class Runner:
         """
         bucket = [] if as_list else {}
         bytes_coded_data: bytes = encode(data)
+        if self.verbose >= 3:
+            print("P2P Broadcast #3: unencrypted payload size: %d bytes" % len(bytes_coded_data))
         reception = self.broadcast_raw(bytes_coded_data)
 
         for submitter in reception.keys():
@@ -271,7 +274,7 @@ class Runner:
 
     def broadcast_raw(self, payload: bytes):
         """
-        The native function performing broadcasting and collecting in a multi-threaded fashion.
+        The native function performing broadcasting and collecting in a multithreaded fashion.
         :param payload: the data to broadcast
         :return: a dictionary with all participants results
         """
@@ -284,7 +287,7 @@ class Runner:
             return server.get_answers()
         else:
             if self.verbose >= 1:
-                print("gLinDA: Starting server in a separate thread for broadcasting")
+                print("P2P Broadcast #1: Starting server in a separate thread for broadcasting")
             results: dict = {}
             server_ready: Event = Event()
 
@@ -297,7 +300,7 @@ class Runner:
             client.send_payload(payload)
             thread.join()
             if self.verbose >= 1:
-                print("=> Broadcasting finished")
+                print("P2P Broadcast #1: Broadcasting finished")
 
             return results
 

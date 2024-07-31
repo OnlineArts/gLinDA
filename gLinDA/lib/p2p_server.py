@@ -106,7 +106,7 @@ class Server(P2P):
                 return False
 
             if self.verbose >= 2:
-                print("Server: Got %s" % data)
+                print("Server: Got (%d) %s" % (len(data), data))
 
             cache.load(data)
 

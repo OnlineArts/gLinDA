@@ -12,10 +12,14 @@ class Wrapper:
     """
 
     def __init__(self, arguments: ArgumentParser, run: bool = True):
-        self.config = Config(arguments, check_sanity=run).get()
+        if arguments.test is None:
 
-        if run:
-            self.run()
+            self.config = Config(arguments, check_sanity=run).get()
+            if run:
+                self.run()
+        else:
+            from gLinDA.lib.p2p_test import P2PIsolationTester
+            P2PIsolationTester(Config(arguments, check_sanity=False).get(), arguments.test)
 
     def run(self):
         if ("solo_mode" in self.config["P2P"] and self.config["P2P"]["solo_mode"]) or self.config["P2P"]["host"] is None:
@@ -55,7 +59,7 @@ def main():
     parser.add_argument("-pw", "--password", type=str, help="Mandatory password for communication")
     parser.add_argument("-p", "--peers", nargs="+",
                         help="A list with peer addresses and ports, e.g. localhost:5000 localhost:5001")
-    parser.add_argument("-t", "--test", type=str, help="Developers")
+    parser.add_argument("-t", "--test", type=str, default=None, help="Developers")
     parser.add_argument('-v', '--verbose', action='count',
                         help="Enables verbose mode, repeat v for a higher verbose mode level")
     parser.add_argument("--ignore-keys", default=False, action='store_true',

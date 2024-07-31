@@ -38,8 +38,8 @@ class Client(P2P):
                 print("Client #2: raw Massage: %s" % raw_payload)
                 print("Client #2: target id %d, key %s" % (identifier, key))
                 print("Client #2: byte identifier %s" % bid)
-                print("Client #2: ciper %s" % enc_payload)
-                print("Client #2: send %s" % msg)
+                print("Client #2: ciper (%d) %s" % (len(enc_payload), enc_payload))
+                print("Client #2: send (%d) %s" % (len(msg), msg))
 
             while not_connected:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
