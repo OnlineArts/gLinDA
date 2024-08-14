@@ -7,12 +7,12 @@ from gLinDA.lib.p2p import Runner
 
 class P2PIsolationTester:
 
-    def __init__(self, config: dict, test_case: str, max_loop: int = 1):
+    def __init__(self, config: dict, test_case: str, max_loop: int = 100):
         self.config: dict = config
         self.test_case: str = test_case
 
         runner = Runner(self.config["P2P"])
-        size_counter: int = 100
+        size_counter: int = 50
         loop_counter: int = 1
         testing: bool = True
 
@@ -21,7 +21,7 @@ class P2PIsolationTester:
                 msg = P2PTester.get_dump_data(size_counter)
                 send_data = runner.broadcast_obj(msg)
                 print(send_data)
-                size_counter += 10
+                size_counter += 25
                 loop_counter += 1
             except KeyboardInterrupt:
                 print("Closing at size %d, loop %d" % (size_counter, loop_counter))
