@@ -15,7 +15,7 @@ This parent package carries all required code for the peer-to-peer network, incl
 implementation and all cryptographic-related handling.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "Roman Martin"
 __credits__ = "Heinrich Heine University Düsseldorf"
 
