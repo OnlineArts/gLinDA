@@ -7,23 +7,24 @@ from gLinDA.lib.p2p import Runner
 
 class P2PIsolationTester:
 
-    def __init__(self, config: dict, test_case: str):
+    def __init__(self, config: dict, test_case: str, max_loop: int = 1):
         self.config: dict = config
         self.test_case: str = test_case
 
         runner = Runner(self.config["P2P"])
-        size_counter: int = 1
+        size_counter: int = 100
+        loop_counter: int = 1
         testing: bool = True
-        while testing:
+
+        while testing and loop_counter <= max_loop:
             try:
-                msg: dict = {}
-                for i in range(0, size_counter):
-                    msg.update({"msg%d" % i: random.randint(1000, 9999)})
+                msg = P2PTester.get_dump_data(size_counter)
                 send_data = runner.broadcast_obj(msg)
                 print(send_data)
                 size_counter += 10
+                loop_counter += 1
             except KeyboardInterrupt:
-                print("Closing in loop %d" % i)
+                print("Closing at size %d, loop %d" % (size_counter, loop_counter))
                 testing = False
             except Exception as e:
                 print(e)
@@ -78,3 +79,10 @@ class P2PTester:
         p2p = Runner(config)
         broadcast = p2p.broadcast_str("Test Message #%s" % random.randint(1000, 9999))
         bucket.append(broadcast)
+
+    @staticmethod
+    def get_dump_data(size) -> dict:
+        msg: dict = {}
+        for i in range(0, size):
+            msg.update({"msg%d" % i: random.randint(1000, 9999)})
+        return msg

@@ -2,7 +2,8 @@ from threading import Event
 import socket
 import random
 
-from gLinDA.lib.p2p import P2P, Keyring, P2PPackage
+from gLinDA.lib.p2p import P2P, Keyring
+from gLinDA.lib.p2p_pkg import P2PCollector, P2PPackage
 
 
 class Server(P2P):
@@ -15,16 +16,30 @@ class Server(P2P):
         self.__answers: dict = {}
         self.nr_clients: int = len(self.peers)
         self.event = event
+        self.cache = P2PCollector(self.bytes_len, self.verbose, len(self.config["peers"]))
 
         if self.nr_clients == 0:
             print("No clients awaiting, terminating server")
             exit(300)
 
         if initial:
-            self.__await_responses(self.host, self.keyring.get_peers()["R"], self.__handshake_keyring)
-        else:
-            self.__await_responses(self.host, self.__answers, self.__reception)
-            results.update(self.__answers)
+            self.__await_responses(self.host, self.keyring.get_peers()["R"], self.__handshake_keyring, initial)
+        elif not self.cache.is_finished():
+            self.__await_responses(self.host, self.__answers, self.__reception, initial)
+            for peer in self.cache.identifiers.keys():
+                raw_msg = self.cache.get_payload(peer)
+
+                if self.config["asymmetric"]:
+                    decrypt_key = self.keyring.get_keys(True)[0]
+                else:
+                    self.encryption.set_init_vector(self.keyring.get_iv())
+                    decrypt_key = self.keyring.for_reception(peer)
+
+                if self.verbose >= 2:
+                    print("Server #2: Use decryption key %s" % decrypt_key)
+
+                msg = self.encryption.decrypt(raw_msg, decrypt_key)
+                results.update({peer: msg})
 
     def get_answers(self) -> dict:
         """
@@ -33,7 +48,7 @@ class Server(P2P):
         """
         return self.__answers
     
-    def __await_responses(self, host: str, bucket, func: object):
+    def __await_responses(self, host: str, bucket, func: object, initial: bool = False):
         """
         Basic backbone for the host connection
         :param host: the own host address
@@ -41,6 +56,7 @@ class Server(P2P):
         :param func: an object function, that will be executed inside as a first outer loop
         :return:
         """
+
         if self.verbose >= 2:
             print('Starting server on %s' % host)
         host, port = host.split(":")
@@ -50,11 +66,11 @@ class Server(P2P):
             s.bind((host, int(port)))
             s.listen()
 
-            if self.event is not None:  # only for multi-threaded call
+            if self.event is not None:  # only for multithreaded call
                 self.event.set()
 
             try:
-                while self.__inner_loop(s, bucket, func):
+                while self.__inner_loop(s, bucket, func, initial):
                     pass
             except KeyboardInterrupt as e:
                 s.close()
@@ -66,7 +82,7 @@ class Server(P2P):
                     print(traceback.print_exc())
                 print(e)
 
-    def __inner_loop(self, s: socket.socket, bucket, func):
+    def __inner_loop(self, s: socket.socket, bucket, func, initial: bool = False):
         """
         The inner function to execute in the outer loop.
         :param s: the socket connection
@@ -80,9 +96,10 @@ class Server(P2P):
                 print("Server: Client connected by %s" % str(addr))
             while True:
 
-                if self.verbose >= 3:
+                if self.verbose >= 3 and initial:
                     print("Server: Current bucket size %d" % len(bucket))
-                if len(bucket) >= self.nr_clients:
+
+                if (initial and len(bucket) >= self.nr_clients) or (not initial and self.cache.is_finished()):
                     return False
 
                 if not func(conn, addr, bucket):
@@ -98,30 +115,25 @@ class Server(P2P):
         :param bucket: a variable cache
         :return: True after termination
         """
-        cache: P2PPackage = P2PPackage(self.bytes_len, self.verbose)
 
-        while not cache.stop:
+        while not self.cache.is_finished():
             data = conn.recv(self.chunk_size)
             if not data:
                 return False
 
             if self.verbose >= 2:
-                print("Server: Got (%d) %s" % (len(data), data))
+                print("Server #2: Got (%d) %s" % (len(data), data))
 
-            cache.load(data)
+            pkg = P2PPackage(self.bytes_len, self.verbose)
 
-            if cache.stop:
-                if self.config["asymmetric"]:
-                    key = self.keyring.get_keys(True)[0]
-                else:
-                    self.encryption.set_init_vector(self.keyring.get_iv())
-                    key = self.keyring.for_reception(cache.identifier)
+            if not pkg.load(data):
+                print("Server: Can not load package.")
+                return True
 
-                cache.msg = self.encryption.decrypt(cache.msg, key)
-                bucket.update({cache.identifier: cache.msg})
+            self.cache.load(pkg)
 
-                if self.verbose >= 2:
-                    print("Server #2: Used key %s" % key)
+            if self.cache.is_finished():
+                bucket.update({pkg.get_identifier(): self.cache.get_payload(pkg.get_identifier())})
 
         return True
 
@@ -130,9 +142,15 @@ class Server(P2P):
         if not data:
             return False
 
+        init_aes_key = self.get_init_key()
+
+        if self.verbose >= 3:
+            print("ServerHandshake #3: Data received %s" % data)
+            print("ServerHandshake #3: Use decryption key %s" % init_aes_key)
+
         data_decrypted = self.encryption.decrypt(
             data,
-            self.key
+            init_aes_key
         )
 
         rsa_key: bytes = bytes()
@@ -144,12 +162,12 @@ class Server(P2P):
 
         if data_decrypted is None or not (super().min_rand <= decrypted_number <= super().max_rand):
             if self.verbose >= 1:
-                print("Server #1: Received data which can not decrypted")
+                print("ServerHandshake #1: Received data which can not decrypted")
             return True
 
         if self.verbose >= 2:
-            print("Server #2: Data received %s" % data_decrypted)
-            print("Server #2: Decrypted number %d" % decrypted_number)
+            print("ServerHandshake #2: Data decrypted received %s" % data_decrypted)
+            print("ServerHandshake #2: Decrypted number %d" % decrypted_number)
 
         confirmation_number = decrypted_number + 1
 
@@ -164,7 +182,6 @@ class Server(P2P):
             self.keyring.add_peer(confirmation_number, new_key, True)
 
         conn.sendall(self.encryption.encrypt(
-            confirmation_number.to_bytes(super().bytes_len, "big") + new_key, self.key
-        ))
+            confirmation_number.to_bytes(self.bytes_len, "big") + new_key, init_aes_key))
 
         return True

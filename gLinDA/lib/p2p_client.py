@@ -3,6 +3,7 @@ import socket
 import time
 
 from gLinDA.lib.p2p import P2P, Keyring
+from gLinDA.lib.p2p_pkg import P2PCollector, P2PPackage
 
 
 class Client(P2P):
@@ -14,6 +15,7 @@ class Client(P2P):
 
         if initial:
             for peer in self.peers:
+                print(peer)
                 self.__initiate_communication(peer)
             if self.verbose >= 1:
                 print("Client #1: I'm done!")
@@ -21,46 +23,57 @@ class Client(P2P):
     def send_payload(self, raw_payload: bytes):
         for peer in self.peers:
             host, port = peer.split(":")
+            pkg_counter: int = 1
             not_connected = True
-            chunk_nr: int = 0
-
-            identifier, key = self.keyring.for_submission(peer)
-            bid: bytes = int(identifier).to_bytes(self.bytes_len, "big")
+            identifier, encrypt_key = self.keyring.for_submission(peer)
 
             if not self.config["asymmetric"]:
                 self.encryption.set_init_vector(self.keyring.get_iv())
 
-            enc_payload = self.encryption.encrypt(raw_payload, key)
+            enc_payload = self.encryption.encrypt(raw_payload, encrypt_key)
+            p2p_pkgs: list = P2PPackage.build_packages(self.bytes_len, self.chunk_size, identifier,
+                                                 enc_payload, self.verbose)
 
-            msg: bytes = bid + enc_payload + "END:".encode("utf8") + bid
+            if self.verbose >= 3:
+                print("Client #3: Sending %d packages to %d" % (len(p2p_pkgs), identifier))
+                print("Client #3: Packages %s" % str(p2p_pkgs))
+                #print("Client #3: raw massage: %s" % raw_payload)
+                print("Client #3: target id %d, key %s" % (identifier, encrypt_key))
+                #print("Client #3: ciper (%d) %s" % (len(enc_payload), enc_payload))
+            elif self.verbose >= 2:
+                print("Client #2: Packages %s" % p2p_pkgs)
+            elif self.verbose >= 1:
+                print("Client #1: Send msg to %s:%d" % (host, int(port)))
 
-            if self.verbose >= 2:
-                print("Client #2: raw Massage: %s" % raw_payload)
-                print("Client #2: target id %d, key %s" % (identifier, key))
-                print("Client #2: byte identifier %s" % bid)
-                print("Client #2: ciper (%d) %s" % (len(enc_payload), enc_payload))
-                print("Client #2: send (%d) %s" % (len(msg), msg))
+            for n in p2p_pkgs:
+                n: P2PPackage = n
+                not_connected = True
+                while not_connected:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        try:
+                            s.connect((host, int(port)))
+                            not_connected = False
 
-            while not_connected:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    try:
-                        s.connect((host, int(port)))
-                        not_connected = False
+                            binary_pkg = n.build_binary_package()
 
-                        if self.verbose >= 1:
-                            print("Client #1: chunk data #%d" % chunk_nr)
+                            if self.verbose >= 3:
+                                print("Client #3: Sending package #%d package: %s" % (pkg_counter, n))
 
-                        s.sendall(msg)
+                            s.sendall(binary_pkg)
+                            s.close()
 
-                        s.close()
-                    except ConnectionRefusedError as e:
-                        if self.verbose >= 1:
-                            print("Client #1: Are you sure the peer %s is reachable? Retry in %d s" %
-                                  (peer, super().waiting_time))
-                        time.sleep(super().waiting_time)
-                        super().set_waiting_time(super().waiting_time + 1)
-                    except Exception as e:
-                        print(e)
+                        except ConnectionRefusedError as e:
+                            if self.verbose >= 1:
+                                print("Client #1: Are you sure the peer %s is reachable? Retry in %d s" %
+                                      (peer, super().waiting_time))
+                            time.sleep(super().waiting_time)
+                            super().set_waiting_time(super().waiting_time + 1)
+                        except Exception as e:
+                            print(e)
+
+                pkg_counter += 1
+                time.sleep(super().waiting_time)
+
         time.sleep(super().waiting_time)  # Test, wait after sending
 
     def __initiate_communication(self, peer: str):
@@ -78,21 +91,27 @@ class Client(P2P):
                         if self.config["asymmetric"]:
                             msg += self.keyring.get_keys(False)[1]  # public key
 
+                        init_aes_key = self.get_init_key()
                         enc_msg = self.encryption.encrypt(
                             msg,
-                            self.key
+                            init_aes_key
                         )
 
                         if self.verbose >= 1:
-                            print("Client #1: send random number %d" % random_number)
+                            print("ClientHandshake #1: Send random number %d to %s:%s" % (random_number, host, port))
+                        if self.verbose >= 2:
+                            print("ClientHandshake #2: Send raw msg %s" % enc_msg)
 
                         s.sendall(enc_msg)
-
                         data = s.recv(self.chunk_size)
+
+                        if self.verbose >= 2:
+                            print("ClientHandshake #2: Received answer encrypted %s" % data )
+                            print("ClientHandshake #2: Will use decryption key %s" % init_aes_key )
 
                         answer = self.encryption.decrypt(
                             data,
-                            self.key
+                            init_aes_key
                         )
 
                         confirmation_number = int.from_bytes(answer[:super().bytes_len], "big")
@@ -116,6 +135,7 @@ class Client(P2P):
                         super().set_waiting_time(super().waiting_time + 1)
                     except Exception as e:
                         print(e)
+
         except KeyboardInterrupt as e:
             print("Client #1: Terminated manually")
         time.sleep(super().waiting_time)  # Test, wait after sending

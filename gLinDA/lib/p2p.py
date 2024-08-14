@@ -73,8 +73,8 @@ class P2P:
     min_rand: int = 1000000
     max_rand: int = 9999999
     bytes_len: int = 3
-    waiting_time: int = 2
-    chunk_size: int = 1024000
+    waiting_time: int = 1
+    chunk_size: int = 1024
     symmetric = False
 
     def __init__(self, config: dict, keyring: Keyring = None):
@@ -84,6 +84,7 @@ class P2P:
         self.host: str = self.config["host"]
         self.peers: list = self.config["peers"]
         self.encryption = EncryptionAsymmetric() if self.config["asymmetric"] else EncryptionSymmetric(self.config)
+        self.init_key = None
 
         if not len(keyring):
             # Create asymmetric keys
@@ -93,7 +94,7 @@ class P2P:
 
             # initially symmetric encryption
             self.encryption = EncryptionSymmetric(self.config)
-            self.key = self.encryption.get_key(self.config["password"])
+            self.init_key = self.encryption.get_key(self.config["password"])
             initialization_vector: bytes = self.encryption.get_iv()
             self.encryption.set_init_vector(initialization_vector)
             self.keyring.set_iv(initialization_vector)
@@ -101,6 +102,8 @@ class P2P:
     def set_waiting_time(self, waiting_time: int):
         self.waiting_time = waiting_time
 
+    def get_init_key(self):
+        return self.init_key
 
 class EncryptionSymmetric:
 
@@ -216,7 +219,7 @@ class EncryptionAsymmetric:
     def get_key(bits: int = 2048, verbose: bool = True) -> tuple:
         key = RSA.generate(bits)
         if verbose:
-            print("EncryptionAsymmetric: Create public and private RSA keys")
+            print("EncryptionAsymmetric #1: Create public and private RSA keys")
         return key.export_key(), key.public_key().export_key()
 
 
@@ -229,7 +232,7 @@ class Runner:
         self.verbose = config["verbose"]
 
         if self.verbose >= 1:
-            print("Awaited clients: %d" % len(self.config["peers"]))
+            print("P2PRunner #1: Awaited clients: %d" % len(self.config["peers"]))
 
         self.__initialize_keyring()
 
@@ -290,12 +293,9 @@ class Runner:
                 print("P2P Broadcast #1: Starting server in a separate thread for broadcasting")
             results: dict = {}
             server_ready: Event = Event()
-
             thread = Thread(target=self.run_server, args=(False, results, server_ready))
             thread.start()
-
             server_ready.wait()
-
             client = self.run_client()
             client.send_payload(payload)
             thread.join()
@@ -362,79 +362,3 @@ class Runner:
         from gLinDA.lib.p2p_client import Client
         client = Client(self.config, self.keyring, initial)
         return client
-
-
-class P2PPackage:
-    
-    identifier: int = 0
-    msg: bytes = bytes()
-    msg_enc: bool = False
-    stop: bool = False
-
-    def __init__(self, identifier_length: int = 3, verbose: int = 0):
-        self.bytes_len = identifier_length
-        self.verbose = verbose
-
-    def load(self, raw_data: bytes) -> bool:
-        # Detect the identifier
-        self.identifier = self.__get_identifier(raw_data[:self.bytes_len])
-        if self.identifier == 0:
-            return False
-
-        # Detect a potential break
-        self.stop = self.__get_break(self.identifier, raw_data[-(4 + self.bytes_len):])
-        if self.stop:
-            self.msg += raw_data[self.bytes_len:-(4 + self.bytes_len)]
-        else:
-            self.msg += raw_data[self.bytes_len:]
-        self.msg_enc = True
-
-        return True
-
-    def __get_identifier(self, data: bytes) -> int:
-        """
-        Identify a putative id from the message.
-        :param data: the message header
-        :return: an identifier as an integer
-        """
-        if self.verbose >= 3:
-            print("Server #3: potential binary identifier %s" % data)
-
-        try:
-            identifier = int.from_bytes(data, "big")
-        except TypeError:
-            return 0
-
-        if self.verbose >= 3:
-            print("Server #3: identifier %d" % identifier)
-
-        return identifier
-
-    def __get_break(self, identifier: int, potential_brake: bytes) -> bool:
-        """
-        Check whether the message is finished
-        :param identifier: the expect identifier
-        :param potential_brake: the tail of a message
-        :return: True if message treminates
-        """
-        end, endid = None, None
-        try:
-            end = potential_brake[:4].decode("utf8")
-            endid = int.from_bytes(potential_brake[-self.bytes_len:], "big")
-
-            if self.verbose >= 3:
-                print("Server #3: expected identifier %d" % identifier)
-                print("Server #3: potential end %s" % potential_brake)
-                print("Server #3: end '%s'" % end)
-                print("Server #3: endid '%d'" % endid)
-
-        except UnicodeDecodeError as e:
-            print(e)
-            return False
-        except Exception as e:
-            print(e)
-            return False
-        return (end is not None and endid is not None) and (end == "END:" and endid == identifier)
-
-    def __repr__(self):
-        return "Identifier %d, Finished %d, Message %s" % (self.identifier, int(self.stop), self.msg)
