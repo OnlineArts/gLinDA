@@ -155,7 +155,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if config["P2P"]["peers"] is not None and type(config["P2P"]["peers"]) is list and \
             len(config["P2P"]["peers"]):
             for i in range(0, len(config["P2P"]["peers"])):
-                self.Tester.setEnabled(True)
                 if i > self.peer_fields:
                     break
                 peer_i: QtWidgets.QLineEdit = self.__getattribute__("Peer%dInput" % (i+1))
@@ -202,10 +201,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Have to be the last otherwise artefacts will occur
         if config["P2P"]["solo_mode"] is not None and type(config["P2P"]["solo_mode"]) is bool:
             self.solo.setChecked(config["P2P"]["solo_mode"])
-            if self.solo.isChecked:
-                self.solo_mode()
-            else:
-                self.Tester.setEnabled(True)
+            self.solo_mode()
 
     def save_config(self):
         """
@@ -322,7 +318,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.Run.setEnabled(status)
         self.Save.setEnabled(status)
         self.Export.setEnabled(status)
-        self.Tester.setEnabled(status)
 
     def run_btn(self):
         """
