@@ -2,12 +2,10 @@ import pandas as pd
 from os import path
 from PyQt6 import QtWidgets, QtCore, uic, QtGui
 
-import gLinDA.gui.network_tester
 from gLinDA.lib.config import Config
 from gLinDA.gui.worker import gLinDALocalWorker, gLinDAP2PWorker
 from gLinDA.lib.linda import LinDA
 from gLinDA.gui.table_selector import TablePopUpDialog
-from gLinDA.gui.network_tester import NetworkTester
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -103,13 +101,7 @@ class MainWindow(QtWidgets.QMainWindow):
         pop.exec()
 
     def open_network_tester(self):
-        self.Run.setEnabled(False)
-        self.__update_config()
-
-        nt = NetworkTester()
-        nt.setPeers(self.config.get()["P2P"]["host"], self.config.get()["P2P"]["peers"])
-        nt.make()
-        nt.exec()
+        pass
 
     def load_configuration_file(self):
         """
