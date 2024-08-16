@@ -136,9 +136,9 @@ class EncryptionSymmetric:
         """
         decrypt_cipher = AES.new(aes_key, AES.MODE_CBC, self._init_vector)
         data = decrypt_cipher.decrypt(ciper)
-        unpadded = None
+        not_padded = None
         try:
-            unpadded = unpad(data, AES.block_size)
+            not_padded = unpad(data, AES.block_size)
         except ValueError:
             print("Crypto: Padding failed, probably wrong key?")
             if not self.config["ignore_keys"]:
@@ -148,7 +148,7 @@ class EncryptionSymmetric:
             print(type(ex))
             print(traceback.print_exc())
             exit(200)
-        return unpadded
+        return not_padded
 
     def get_key(self, password: str, skip_iterations: bool = False):
         """
@@ -211,7 +211,6 @@ class EncryptionAsymmetric:
         except ValueError:
             print("Error during decryption, private key: %s" % str(private_key))
             print("Cipher: %s" % str(cipher))
-            raise ValueError()
             return bytes()
         return msg
 
