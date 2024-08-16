@@ -12,7 +12,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     peer_fields: int = 5
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, config_args, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi("gLinDA/gui/gui.ui", self)
 
@@ -24,9 +24,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.worker = gLinDAP2PWorker()
 
         # gLinDA Configuration
-        self.config: Config = Config(check_sanity=False)
-        self.gLinDAResults = None
         self._default_startup()
+        self.config: Config = Config(config_args, check_sanity=False)
+        self.__implement_config(self.config.get())
+        self.__update_config()
+        self.gLinDAResults = None
 
     def _default_startup(self):
         """
@@ -75,8 +77,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Popup
         self.FeaturePopupButton: QtWidgets.QToolButton = self.FeatureIndex
         self.MetaPopupButton: QtWidgets.QToolButton = self.MetaIndex
-        self.FeaturePopupButton.clicked.connect(self.show_popup)
-        self.MetaPopupButton.clicked.connect(self.show_popup)
+        # self.FeaturePopupButton.clicked.connect(self.show_table_selector)
+        # self.MetaPopupButton.clicked.connect(self.show_table_selector)
 
         # Default values
         self.Message.setText("")
@@ -89,16 +91,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.FeaturePopupButton.setEnabled(False)
         self.MetaPopupButton.setEnabled(False)
         self.Tester.setEnabled(False)
-        # until debugged
+        # TODO: Debug
         self.rsa.setChecked(False)
         self.rsa.setEnabled(False)
         self.aes.setChecked(True)
 
-    def show_popup(self):
-        pop = TablePopUpDialog()
-        pop.setFilename(self.config.get()["LINDA"]["feature_table"])
-        pop.make()
-        pop.exec()
+    def show_table_selector(self):
+        tbl_sel = TablePopUpDialog()
+        tbl_sel.setFilename(self.config.get()["LINDA"]["feature_table"])
+        tbl_sel.make()
+        tbl_sel.exec()
 
     def open_network_tester(self):
         pass
@@ -135,15 +137,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.config.set(cfg)
             self.check_run_btn()
 
-    def __import_config_file(self, config_path: str):
-        """
-        Import a configuration file and update the configuration fields.
-        :param config_path: path to the INI configuration file.
-        """
-        # P2P
-        self.config: Config = Config(ini_path=config_path, check_sanity=False)
-        config = self.config.get()
-
+    def __implement_config(self, config: dict):
         # host
         if config["P2P"]["host"] is not None and len(config["P2P"]["host"]):
             self.host_field.setText(config["P2P"]["host"])
@@ -176,7 +170,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if config["LINDA"]["feature_table"] is not None and type(config["LINDA"]["feature_table"]) is str and \
             path.exists(config["LINDA"]["feature_table"]):
             self.featuredata.setText("Feature Table: %s" % path.basename(config["LINDA"]["feature_table"]))
-            self.FeaturePopupButton.setEnabled(True)
+            #self.FeaturePopupButton.setEnabled(True)
 
         if config["LINDA"]["meta_table"] is not None and type(config["LINDA"]["meta_table"]) is str and \
             path.exists(config["LINDA"]["meta_table"]):
@@ -202,6 +196,17 @@ class MainWindow(QtWidgets.QMainWindow):
         if config["P2P"]["solo_mode"] is not None and type(config["P2P"]["solo_mode"]) is bool:
             self.solo.setChecked(config["P2P"]["solo_mode"])
             self.solo_mode()
+
+
+    def __import_config_file(self, config_path: str):
+        """
+        Import a configuration file and update the configuration fields.
+        :param config_path: path to the INI configuration file.
+        """
+        # P2P
+        self.config: Config = Config(ini_path=config_path, check_sanity=False)
+        config = self.config.get()
+        self.__implement_config(config)
 
     def save_config(self):
         """
@@ -290,6 +295,10 @@ class MainWindow(QtWidgets.QMainWindow):
         config["LINDA"]["correction_cutoff"] = self.correction.text()
 
         self.config.set(config)
+        # TODO: Debug, remove later
+        self.rsa.setChecked(False)
+        self.rsa.setEnabled(False)
+        self.aes.setChecked(True)
 
     def __config_p2p_fields_status(self, status: bool = False):
         """

@@ -14,8 +14,8 @@ setup(
     author_email='leon.fehse@hhu.de',
     license='BSD 3-clause',
     packages=['gLinDA'],
-    install_requires=["argparse", "matplotlib", "natsort", "networkx", "numpy", "pandas", "psutil", "pycryptodome",
-                      "PyQt6", "seaborn", "scipy", "setuptools", "statsmodels", "timeout_decorator"],
+    install_requires=["argparse", "lxml", "matplotlib", "natsort", "networkx", "numpy", "pandas", "psutil",
+                      "pycryptodome", "PyQt6", "seaborn", "scipy", "setuptools", "statsmodels", "timeout_decorator"],
     include_package_data=True,
     classifiers=[
         'Development Status :: 1 - Planning',
