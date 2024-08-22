@@ -41,7 +41,7 @@ class gLinDA_p2p_s5000_3peers(unittest.TestCase):
         p2p = Runner(config["P2P"])
         replies = p2p.broadcast_obj(coeffs)
         replies.update({0: coeffs})
-        results = LinDA.run_sl_avg(replies, config["LINDA"]["formula"])
+        results = LinDA.run_sl_avg(replies, config["LINDA"]["formula"], not config["LINDA"]["intersection"])
         bucket.append(results)
 
     @timeout_decorator.timeout(300)

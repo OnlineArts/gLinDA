@@ -44,7 +44,7 @@ class Wrapper:
 
         # Add own parameters to the replies
         replies.update({0: coeffs})
-        results = LinDA.run_sl_avg(replies, self.config["LINDA"]["formula"])
+        results = LinDA.run_sl_avg(replies, self.config["LINDA"]["formula"], not self.config["LINDA"]["intersection"])
         print(LinDA.display_results(results))
 
         return results

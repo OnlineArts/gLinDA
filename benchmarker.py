@@ -1,5 +1,3 @@
-import timeout_decorator
-
 from subprocess import Popen, PIPE
 from os import mkdir, path
 from argparse import ArgumentParser
@@ -28,7 +26,6 @@ class Benchmarker:
     def test_loop(self, config_path: str, peers: int, output: str):
         return self.test_standalone(config_path) if peers <= 1 else self.test_swarm_learning(config_path, peers, output)
 
-    @timeout_decorator.timeout(300)
     def test_swarm_learning(self, config: str, peers: int, output: str):
         returns = ""
         config_line: dict = ""
@@ -36,7 +33,7 @@ class Benchmarker:
         if not path.exists(output+"/tmp"):
             mkdir(output+"/tmp")
 
-        with Popen(["python3", "dataset_splitter.py", "-config", config, "-peers", str(peers), "-output",
+        with Popen(["python", "dataset_splitter.py", "-config", config, "-peers", str(peers), "-output",
                     output+"/tmp"], stdout=PIPE) as proc:
             splits = proc.stdout.read().decode("utf8")
             lines = splits.split("\n")
@@ -55,18 +52,15 @@ class Benchmarker:
         for i in range(0, peers):
             process_list.append(Process(target=self.test_standalone, args=(config_line[i], bucket_list)))
 
-        try:
-            [p.start() for p in process_list]
-            [p.join() for p in process_list]
-        except timeout_decorator.TimeoutError as e:
-            [p.kill() for p in process_list]
+        [p.start() for p in process_list]
+        [p.join() for p in process_list]
 
         returns = bucket_list[0]
 
         return returns
 
     def test_standalone(self, config, bucket_list: list = []):
-        with Popen(["python3", "glinda.py", "--config", config], stdout=PIPE) as proc:
+        with Popen(["python", "glinda.py", "--config", config], stdout=PIPE) as proc:
             results = proc.stdout.read().decode("utf8")
             bucket_list.append(results)
             return results

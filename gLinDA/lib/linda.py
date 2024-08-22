@@ -153,7 +153,7 @@ class LinDA:
         return output_frames
 
     @staticmethod
-    def take_avg_params(all_parameters: dict, is_sum: bool = False):
+    def take_avg_params(all_parameters: dict, union: bool = True):
         models_list = []
         weights = []
         bias_list = []
@@ -168,12 +168,19 @@ class LinDA:
             weights.append(weight)
             bias_list.append(biases)
 
-        all_taxa = set(models_list[0][next(iter(models_list[0]))].index)
+        all_taxa = set()
+        if union:
+            for model in models_list:
+                for voi in model:
+                    all_taxa.update(model[voi].index)
+        else:  
+        
+            all_taxa = set(models_list[0][next(iter(models_list[0]))].index)
 
-        for dict in models_list[1:]:
-            indexes = set(dict[next(iter(dict))].index)
-            all_taxa.intersection_update(indexes)
-
+            for dict in models_list[1:]:
+                indexes = set(dict[next(iter(dict))].index)
+                all_taxa.intersection_update(indexes)
+                     
         all_taxa_list = list(all_taxa)
         all_taxa_list = sorted(all_taxa_list)
 
@@ -190,30 +197,22 @@ class LinDA:
                 weighted_sums = {}
                 for i, model in enumerate(models_list):
                     if voi in model and taxa in model[voi].index:
-                        if (is_sum):
-                            taxa_sums = model[voi].loc[taxa]["taxa_sums"]
-                            total_weighted_sum += model[voi].loc[taxa]  # * weights[i]
-                            total_weight += taxa_sums
-                        else:
-                            taxa_sums = model[voi].loc[taxa]["taxa_sums"]
-                            for col in model[voi].columns:
-                                if col not in weighted_sums:
-                                    weighted_sums[col] = 0
-                                if col == "stde" or col == "stde_avg":
-                                    weighted_sums[col] += (model[voi].loc[taxa][col] * weights[i]) ** 2
+                        taxa_sums = model[voi].loc[taxa]["taxa_sums"]
+                        for col in model[voi].columns:
+                            if col not in weighted_sums:
+                                weighted_sums[col] = 0
+                            if col == "stde" or col == "stde_avg":
+                                weighted_sums[col] += (model[voi].loc[taxa][col] * weights[i]) ** 2
 
-                                else:
-                                    weighted_sums[col] += model[voi].loc[taxa][col] * weights[i]
+                            else:
+                                weighted_sums[col] += model[voi].loc[taxa][col] * weights[i]
 
-                            total_weight += weights[i]
-                if (is_sum):
-                    final_dict[voi].loc[taxa] = total_weighted_sum  # / total_weight
-                else:
-                    for col in weighted_sums:
-                        if col == "stde" or col == "stde_avg":
-                            final_dict[voi].loc[taxa, col] = np.sqrt(weighted_sums[col]) / total_weight
-                        else:
-                            final_dict[voi].loc[taxa, col] = weighted_sums[col] / total_weight
+                        total_weight += weights[i]
+                for col in weighted_sums:
+                    if col == "stde" or col == "stde_avg":
+                        final_dict[voi].loc[taxa, col] = np.sqrt(weighted_sums[col]) / total_weight
+                    else:
+                        final_dict[voi].loc[taxa, col] = weighted_sums[col] / total_weight
 
             final_dict[voi] = final_dict[voi].astype(float)
 
@@ -507,7 +506,7 @@ class LinDA:
         return LinDA.run(feature_data, meta_data, cfg, False)
 
     @staticmethod
-    def run_sl_avg(all_parameters: dict, formula: str):
+    def run_sl_avg(all_parameters: dict, formula: str, union: bool = True):
         results = {}
         try:
             total_data_size = sum([a["size"] for a in all_parameters.values()])

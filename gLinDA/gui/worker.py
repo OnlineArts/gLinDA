@@ -80,7 +80,7 @@ class gLinDAP2PWorker(QtCore.QObject):
             replies: dict = p2p.broadcast_obj(params)
             replies.update({0: params})
 
-            results = linda.run_sl_avg(replies, cfg["formula"])
+            results = linda.run_sl_avg(replies, cfg["formula"], not cfg["intersection"])
 
         except LindaInternalError as e:
             results: dict = {"ERROR": e}
