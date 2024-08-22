@@ -15,7 +15,6 @@ class Client(P2P):
 
         if initial:
             for peer in self.peers:
-                print(peer)
                 self.__initiate_communication(peer)
             if self.verbose >= 1:
                 print("Client #1: I'm done!")

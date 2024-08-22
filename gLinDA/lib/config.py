@@ -38,16 +38,14 @@ class Config:
             "correction_cutoff": 0.1,
             "verbose": 0,
             "winsor": True,
-            "adaptive": True
+            "adaptive": True,
+            "intersection": False
         }
     }
     ip_filter: list = ["localhost", "127.0.0.1", "::1"]
     msg: str = ""
 
     def __init__(self, arguments: argparse.ArgumentParser = None, ini_path: str = None, check_sanity: bool = True):
-        if arguments is None and ini_path is None:
-            print("Use default configuration only")
-
         if arguments is not None:
             config_path = arguments.config
         elif ini_path is not None:
@@ -99,6 +97,8 @@ class Config:
         self.config["LINDA"]["max_abundance"] = self._cast_float(self.config["LINDA"]["max_abundance"])
         self.config["LINDA"]["correction_cutoff"] = self._cast_float(self.config["LINDA"]["correction_cutoff"])
         self.config["LINDA"]["pseudo_count"] = self._cast_float(self.config["LINDA"]["pseudo_count"])
+
+        self.config["LINDA"]["intersection"] = self._cast_bool(self.config["LINDA"]["intersection"])
 
         if type(self.config["LINDA"]["verbose"]) is str:
             self.config["LINDA"]["verbose"] = int(self.config["LINDA"]["verbose"])

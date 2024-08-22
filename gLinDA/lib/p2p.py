@@ -74,7 +74,7 @@ class P2P:
     max_rand: int = 9999999
     bytes_len: int = 3
     waiting_time: int = 1
-    chunk_size: int = 2048
+    chunk_size: int = 4096
     symmetric = False
 
     def __init__(self, config: dict, keyring: Keyring = None):
