@@ -39,7 +39,8 @@ class Config:
             "verbose": 0,
             "winsor": True,
             "adaptive": True,
-            "intersection": False
+            "intersection": False,
+            "output": "",
         }
     }
     ip_filter: list = ["localhost", "127.0.0.1", "::1"]
@@ -59,8 +60,12 @@ class Config:
             self.config = self.merge_dictionary(self.config, configs)
 
         if arguments is not None:
-            arg_filtered = self._argument_parser(arguments)
-            self.config = self.merge_dictionary(self.config, arg_filtered)
+            arg_filtered_p2p = self._argument_parser(arguments, "P2P")
+            self.config = self.merge_dictionary(self.config, arg_filtered_p2p)
+            if len(arguments.output):
+                self.config["LINDA"]["output"] = arguments.output
+            if arguments.standalone:
+                self.config["P2P"]["solo_mode"] = True
 
         self.cast_parameters()
         if self.config["P2P"]["resolve_host"] and self.config["P2P"]["resolve_host"] is not None:
@@ -360,7 +365,7 @@ class Config:
                     yield (interface, nic.address)
 
     @staticmethod
-    def _argument_parser(arguments: argparse.ArgumentParser):
+    def _argument_parser(arguments: argparse.ArgumentParser, main_key: str):
         """
         Reads the arguments for the P2P network.
         :param arguments: the argument parser object

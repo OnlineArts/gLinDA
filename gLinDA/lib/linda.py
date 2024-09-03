@@ -510,7 +510,7 @@ class LinDA:
         results = {}
         try:
             total_data_size = sum([a["size"] for a in all_parameters.values()])
-            merged_coefficients = LinDA.take_avg_params(all_parameters)
+            merged_coefficients = LinDA.take_avg_params(all_parameters, union)
             corrected_coefficients, dof = LinDA.correct_bias(total_data_size, formula, merged_coefficients)
             results = LinDA.linda_output(dof, corrected_coefficients)
         except LindaWrongData as e:
@@ -542,3 +542,11 @@ class LinDA:
                 print(e)
                 continue
         return collector
+
+    @staticmethod
+    def export_results(results: dir, path: str, prefix: str):
+        if len(results):
+            for key, value in results.items():
+                new_file_name = "%s/%s_%s.csv" % (path, prefix[:prefix.rfind("."):], key)
+                res: pd.DataFrame = value
+                res.to_csv(new_file_name)

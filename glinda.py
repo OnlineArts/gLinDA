@@ -1,4 +1,5 @@
 #!/bin/env python3
+import os.path
 
 from gLinDA.lib.config import Config
 from gLinDA.lib.p2p import Runner
@@ -29,6 +30,7 @@ class Wrapper:
 
     def run_locally(self):
         results = LinDA.run_local(self.config["LINDA"])
+        self.export_result(results)
         print(LinDA.display_results(results))
 
         return results
@@ -45,10 +47,19 @@ class Wrapper:
         # Add own parameters to the replies
         replies.update({0: coeffs})
         results = LinDA.run_sl_avg(replies, self.config["LINDA"]["formula"], not self.config["LINDA"]["intersection"])
+        self.export_result(results)
         print(LinDA.display_results(results))
 
         return results
 
+    def export_result(self, results):
+        try:
+            if type(self.config["LINDA"]["output"]) is str and len(self.config["LINDA"]["output"]):
+                prefix = os.path.basename(self.config["LINDA"]["feature_table"])
+                prefix = prefix[:prefix.rfind(".")]
+                LinDA.export_results(results, self.config["LINDA"]["output"], prefix )
+        except:
+            print("Can not store results at the given path")
 
 def main():
     """

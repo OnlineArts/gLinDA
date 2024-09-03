@@ -1,3 +1,4 @@
+import os
 from subprocess import Popen, PIPE
 from os import mkdir, path
 from argparse import ArgumentParser
@@ -14,9 +15,6 @@ class Benchmarker:
 
         for config in config_files:
             config_name = self._get_filename(config)
-            #config_output_dir = arguments.output+"/"+config_name
-            #if not path.exists(config_output_dir):
-            #    os.mkdir(config_output_dir)
             for peer in peers:
                 print("Config: %s, Peers: %d" % (config_name, peer))
                 results = self.test_loop(config, peer, arguments.output)
@@ -24,7 +22,10 @@ class Benchmarker:
                     file.write(results)
 
     def test_loop(self, config_path: str, peers: int, output: str):
-        return self.test_standalone(config_path) if peers <= 1 else self.test_swarm_learning(config_path, peers, output)
+        if peers <= 1:
+            return self.test_standalone(config_path, output=output, i=0, peers=1)
+        else:
+            return self.test_swarm_learning(config_path, peers, output)
 
     def test_swarm_learning(self, config: str, peers: int, output: str):
         returns = ""
@@ -50,17 +51,42 @@ class Benchmarker:
         bucket_list = manager.list()
         process_list: list = []
         for i in range(0, peers):
-            process_list.append(Process(target=self.test_standalone, args=(config_line[i], bucket_list)))
+            process_list.append(Process(target=self.test_standalone, args=(config_line[i], bucket_list, output, i, peers)))
 
         [p.start() for p in process_list]
         [p.join() for p in process_list]
 
         returns = bucket_list[0]
 
+        process_list: list = []
+        for i in range(0, peers):
+            process_list.append(Process(target=self.only_a_node, args=(config_line[i], [], output, i, peers)))
+        [p.start() for p in process_list]
+        [p.join() for p in process_list]
+
         return returns
 
-    def test_standalone(self, config, bucket_list: list = []):
-        with Popen(["python", "glinda.py", "--config", config], stdout=PIPE) as proc:
+    def test_standalone(self, config, bucket_list: list = [], output: str = "", i: int = 0, peers: int = 0):
+        parameters = ["python", "glinda.py", "--config", config]
+        dir = "%s_p%d" % (output, peers)
+        try:
+            if not os.path.exists(dir):
+                os.mkdir(dir)
+        except:
+            pass
+        if i == 0:
+            parameters.extend(["--output", dir])
+        with Popen(parameters, stdout=PIPE) as proc:
+            results = proc.stdout.read().decode("utf8")
+            bucket_list.append(results)
+            return results
+
+    def only_a_node(self, config, bucket_list: list = [], output: str = "", i: int = 0, peers: int = 1):
+        dir = "%s_p%d_n%d" % (output, peers, i+1)
+        if not os.path.exists(dir):
+            os.mkdir(dir)
+        parameters = ["python", "glinda.py", "--config", config, "--output", dir, "--standalone"]
+        with Popen(parameters, stdout=PIPE) as proc:
             results = proc.stdout.read().decode("utf8")
             bucket_list.append(results)
             return results

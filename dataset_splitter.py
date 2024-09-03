@@ -12,7 +12,11 @@ from gLinDA.lib.p2p_test import P2PTester
 class DatasetSplitter:
 
     def __init__(self, arguments: ArgumentParser):
-        self.fractions = [1.0/arguments.peers for i in range(arguments.peers)]
+        if len(arguments.fraction):
+            self.fractions = arguments.fraction
+        else:
+            self.fractions = [1.0/arguments.peers for i in range(arguments.peers)]
+
         self.linda_config: dict = Config(ini_path=arguments.config, check_sanity=False).get()["LINDA"]
         feature_table_path = self.linda_config["feature_table"]
         feature_index = self.linda_config["feature_index"]
@@ -38,7 +42,6 @@ class DatasetSplitter:
         for i in range(0, len(self.fractions)):
             linda = deepcopy(self.linda_config)
             linda["feature_table"] = feature_paths[i]
-            #linda["feature_transpose"] = True
             linda["meta_table"] = meta_paths[i]
             dummy_config = Config(check_sanity=False)
             dummy_config.set({"P2P": configs[i], "LINDA": linda})
@@ -121,6 +124,7 @@ def main():
     "Provide configuration files with specific LINDA parameters for this dataset")
     parser.add_argument("-peers", type=int, default=2, help="Numbers of peers")
     parser.add_argument("-output", type=str, help="Path where to store the new data")
+    parser.add_argument("--fraction", type=float, nargs='+', help="List of fraction sizes", default=[])
     parser.add_argument("--seed", type=int, default=42, help="Used seed for the split")
     args = parser.parse_args()
     DatasetSplitter(args)

@@ -22,7 +22,8 @@ class Arguments:
         parser.add_argument("--intersection", default=False, action='store_true',
                             help="Use only intersection of commonly existing features instead the union")
         parser.add_argument("--config", type=str, help="path to config file")
-
+        parser.add_argument("--standalone", default=False, action='store_true', help="Forces to run gLinDA in the solo mode")
+        parser.add_argument("--output", type=str, default="", help="path to an output directory")
         self.__args = parser.parse_args()
 
     def get_args(self):
