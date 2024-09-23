@@ -132,7 +132,7 @@
            </widget>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="FeatureData">
+           <layout class="QHBoxLayout" name="FEATURE">
             <item>
              <widget class="QPushButton" name="FeatureDataTableButton">
               <property name="text">
@@ -150,7 +150,7 @@
            </layout>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="horizontalLayout">
+           <layout class="QHBoxLayout" name="META">
             <item>
              <widget class="QPushButton" name="MetaDataTableButton">
               <property name="text">
@@ -340,7 +340,35 @@
            <widget class="QLineEdit" name="PasswordInput"/>
           </item>
           <item>
+           <widget class="QLabel" name="ModeLabel">
+            <property name="text">
+             <string>Mode</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="ModeGroup">
+            <item>
+             <widget class="QRadioButton" name="ModeIntersection">
+              <property name="text">
+               <string>Union</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="ModeUnion">
+              <property name="text">
+               <string>Intersection</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
            <widget class="QLabel" name="EncryptionLabel">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="text">
              <string>Encryption</string>
             </property>

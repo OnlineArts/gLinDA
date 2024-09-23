@@ -49,8 +49,14 @@ class MainWindow(QtWidgets.QMainWindow):
         ## P2P
         self.host_field: QtWidgets.QLineEdit = self.HostInput
         self.password_field: QtWidgets.QLineEdit = self.PasswordInput
+        self.mode_intersection: QtWidgets.QRadioButton = self.ModeIntersection
+        self.mode_intersection.setChecked(True)
+        self.mode_union: QtWidgets.QRadioButton = self.ModeUnion
         self.aes: QtWidgets.QRadioButton = self.AESEncryption
         self.rsa: QtWidgets.QRadioButton = self.RSAEncryption
+        self.EncryptionLabel.setHidden(True)
+        self.aes.setHidden(True)
+        self.rsa.setHidden(True)
         self.solo: QtWidgets.QCheckBox = self.SoloMode
 
         # LinDA
