@@ -6,6 +6,7 @@ from gLinDA.lib.p2p import Runner
 from gLinDA.lib.linda import LinDA
 from gLinDA.lib.argument import Arguments
 
+__version__ = "1.0.0"
 
 class Wrapper:
     """

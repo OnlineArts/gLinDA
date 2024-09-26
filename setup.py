@@ -5,7 +5,7 @@ with open('README.md', 'r') as readme:
 
 setup(
     name='gLinDA',
-    version='0.9.0',
+    version='1.0.0',
     description='A gossip learning implementation of LinDA',
     long_description=long_description,
     long_description_content_type='text/markdown',

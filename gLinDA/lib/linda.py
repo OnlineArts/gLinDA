@@ -8,6 +8,7 @@ from io import StringIO
 
 from gLinDA.lib.errors import LindaInternalError, LindaWrongData
 
+__version__ = "1.0.0"
 __author__ = "Leon Fehse, Mohammad Tajabadi, Roman Martin"
 __credits__ = "Heinrich Heine University Düsseldorf"
 
